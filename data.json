@@ -1,13 +1,19 @@
 {
   "characters": [
     { "name": "Zhezhi(折枝)"},
-    { "name": "キャラクターB", "value": 15 },
-    { "name": "キャラクターC", "value": 20 }
+    { "name": "キャラクターB"},
+    { "name": "キャラクターC"}
   ],
-  "weapons": [
-    { "name": "武器X", "value": 5 },
-    { "name": "武器Y", "value": 10 },
-    { "name": "武器Z", "value": 15 }
+  "echostars": [
+    { "name": "4"},
+    { "name": "3"},
+    { "name": "1"}
+  ],
+  
+  "echos": [
+    { "name": "A", "value": 5 },
+    { "name": "B", "value": 10 },
+    { "name": "C", "value": 15 }
   ],
   "mainOptions": [
     { "name": "オプション1", "value": 30 },
