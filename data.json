@@ -1,0 +1,22 @@
+{
+  "characters": [
+    { "name": "キャラクターA", "value": 10 },
+    { "name": "キャラクターB", "value": 15 },
+    { "name": "キャラクターC", "value": 20 }
+  ],
+  "weapons": [
+    { "name": "武器X", "value": 5 },
+    { "name": "武器Y", "value": 10 },
+    { "name": "武器Z", "value": 15 }
+  ],
+  "mainOptions": [
+    { "name": "オプション1", "value": 30 },
+    { "name": "オプション2", "value": 20 },
+    { "name": "オプション3", "value": 10 }
+  ],
+  "subOptions": [
+    { "name": "サブ1", "value": 1 },
+    { "name": "サブ2", "value": 2 },
+    { "name": "サブ3", "value": 3 }
+  ]
+}
