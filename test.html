@@ -1,35 +1,112 @@
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <meta
-      name="description"
-      content="Damage calculation app for Wuthering Waves with damage calculations, build creation and more!" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poiret+One&display=swap"
-      rel="stylesheet" />
-    <title>Wuthering Waves Calculator & Optimizer</title>
-    <script type="module" crossorigin src="/assets/index-CXZq16HR.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-4SNG0wE3.css">
-  </head>
-  <body>
-    <div id="app"></div>
-    <!-- 100% privacy-first analytics -->
-    <script
-      async
-      defer
-      src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
-    <noscript
-      ><img
-        src="https://queue.simpleanalyticscdn.com/noscript.gif"
-        alt=""
-        referrerpolicy="no-referrer-when-downgrade"
-    /></noscript>
-  </body>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>相談受付</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        form, table {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>相談受付システム</h1>
+    <form id="consultationForm">
+        <label for="name">名前:</label><br>
+        <input type="text" id="name" name="name" required><br><br>
+
+        <label for="topic">相談内容:</label><br>
+        <textarea id="topic" name="topic" required></textarea><br><br>
+
+        <button type="button" onclick="addEntry()">追加</button>
+    </form>
+
+    <h2>受付一覧</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>名前</th>
+                <th>相談内容</th>
+                <th>削除</th>
+            </tr>
+        </thead>
+        <tbody id="entries"></tbody>
+    </table>
+
+    <script>
+        // データベース（LocalStorageのキー名）
+        const DB_KEY = "consultationData";
+
+        // 初期化
+        document.addEventListener("DOMContentLoaded", loadEntries);
+
+        // データを追加
+        function addEntry() {
+            const name = document.getElementById("name").value.trim();
+            const topic = document.getElementById("topic").value.trim();
+
+            if (!name || !topic) {
+                alert("すべてのフィールドを入力してください。");
+                return;
+            }
+
+            // ローカルストレージからデータを取得
+            const data = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+            data.push({ name, topic });
+
+            // ローカルストレージに保存
+            localStorage.setItem(DB_KEY, JSON.stringify(data));
+
+            // フォームをクリア
+            document.getElementById("consultationForm").reset();
+
+            // 表を再描画
+            loadEntries();
+        }
+
+        // データを表示
+        function loadEntries() {
+            const entriesElement = document.getElementById("entries");
+            entriesElement.innerHTML = ""; // 初期化
+
+            // ローカルストレージからデータを取得
+            const data = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+
+            // テーブルに表示
+            data.forEach((entry, index) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${entry.name}</td>
+                    <td>${entry.topic}</td>
+                    <td><button onclick="deleteEntry(${index})">削除</button></td>
+                `;
+                entriesElement.appendChild(row);
+            });
+        }
+
+        // データを削除
+        function deleteEntry(index) {
+            const data = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+            data.splice(index, 1); // 指定した項目を削除
+            localStorage.setItem(DB_KEY, JSON.stringify(data)); // 更新
+            loadEntries(); // 再描画
+        }
+    </script>
+</body>
 </html>
