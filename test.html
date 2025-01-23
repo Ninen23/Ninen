@@ -1,3 +1,10 @@
+以下は、都道府県の選択を追加するために変更した箇所を明示しつつ、説明を追加したバージョンです。
+
+
+---
+
+1. index.html の変更点
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -22,12 +29,92 @@
             text-align: left;
         }
     </style>
+    
+    <!-- 変更箇所1: prefectures.js を読み込む -->
+    <script src="prefectures.js" defer></script>
+    
+    <script>
+        // 変更箇所2: ページロード時に都道府県の選択肢を生成
+        document.addEventListener("DOMContentLoaded", () => {
+            const prefectureSelect = document.getElementById("prefecture");
+            
+            // prefectures.js の都道府県リストを利用してドロップダウンを生成
+            prefectures.forEach(pref => {
+                const option = document.createElement("option");
+                option.value = pref;
+                option.textContent = pref;
+                prefectureSelect.appendChild(option);
+            });
+
+            // 保存データの読み込み
+            loadEntries();
+        });
+
+        const DB_KEY = "consultationData";
+
+        // データを追加
+        function addEntry() {
+            const name = document.getElementById("name").value.trim();
+            const prefecture = document.getElementById("prefecture").value;
+            const phone = document.getElementById("phone").value.trim();
+            const topic = document.getElementById("topic").value.trim();
+
+            if (!name || !prefecture || !phone || !topic) {
+                alert("すべてのフィールドを入力してください。");
+                return;
+            }
+
+            const data = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+            data.push({ name, prefecture, phone, topic });
+            localStorage.setItem(DB_KEY, JSON.stringify(data));
+
+            document.getElementById("consultationForm").reset();
+            loadEntries();
+        }
+
+        // データを表示
+        function loadEntries() {
+            const entriesElement = document.getElementById("entries");
+            entriesElement.innerHTML = "";
+
+            const data = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+            data.forEach((entry, index) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${entry.name}</td>
+                    <td>${entry.prefecture}</td>
+                    <td>${entry.phone}</td>
+                    <td>${entry.topic}</td>
+                    <td><button onclick="deleteEntry(${index})">削除</button></td>
+                `;
+                entriesElement.appendChild(row);
+            });
+        }
+
+        // データを削除
+        function deleteEntry(index) {
+            const data = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+            data.splice(index, 1);
+            localStorage.setItem(DB_KEY, JSON.stringify(data));
+            loadEntries();
+        }
+    </script>
 </head>
 <body>
     <h1>相談受付システム</h1>
     <form id="consultationForm">
         <label for="name">名前:</label><br>
         <input type="text" id="name" name="name" required><br><br>
+
+        <!-- 変更箇所3: 都道府県の選択フィールドを追加 -->
+        <label for="prefecture">都道府県:</label><br>
+        <select id="prefecture" name="prefecture" required>
+            <option value="" disabled selected>選択してください</option>
+        </select><br><br>
+
+        <label for="phone">電話番号:</label><br>
+        <input type="tel" id="phone" name="phone" required pattern="[0-9\-]+" placeholder="例: 090-1234-5678"><br><br>
 
         <label for="topic">相談内容:</label><br>
         <textarea id="topic" name="topic" required></textarea><br><br>
@@ -41,72 +128,74 @@
             <tr>
                 <th>#</th>
                 <th>名前</th>
+                <th>都道府県</th>
+                <th>電話番号</th>
                 <th>相談内容</th>
                 <th>削除</th>
             </tr>
         </thead>
         <tbody id="entries"></tbody>
     </table>
-
-    <script>
-        // データベース（LocalStorageのキー名）
-        const DB_KEY = "consultationData";
-
-        // 初期化
-        document.addEventListener("DOMContentLoaded", loadEntries);
-
-        // データを追加
-        function addEntry() {
-            const name = document.getElementById("name").value.trim();
-            const topic = document.getElementById("topic").value.trim();
-
-            if (!name || !topic) {
-                alert("すべてのフィールドを入力してください。");
-                return;
-            }
-
-            // ローカルストレージからデータを取得
-            const data = JSON.parse(localStorage.getItem(DB_KEY)) || [];
-            data.push({ name, topic });
-
-            // ローカルストレージに保存
-            localStorage.setItem(DB_KEY, JSON.stringify(data));
-
-            // フォームをクリア
-            document.getElementById("consultationForm").reset();
-
-            // 表を再描画
-            loadEntries();
-        }
-
-        // データを表示
-        function loadEntries() {
-            const entriesElement = document.getElementById("entries");
-            entriesElement.innerHTML = ""; // 初期化
-
-            // ローカルストレージからデータを取得
-            const data = JSON.parse(localStorage.getItem(DB_KEY)) || [];
-
-            // テーブルに表示
-            data.forEach((entry, index) => {
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${entry.name}</td>
-                    <td>${entry.topic}</td>
-                    <td><button onclick="deleteEntry(${index})">削除</button></td>
-                `;
-                entriesElement.appendChild(row);
-            });
-        }
-
-        // データを削除
-        function deleteEntry(index) {
-            const data = JSON.parse(localStorage.getItem(DB_KEY)) || [];
-            data.splice(index, 1); // 指定した項目を削除
-            localStorage.setItem(DB_KEY, JSON.stringify(data)); // 更新
-            loadEntries(); // 再描画
-        }
-    </script>
 </body>
 </html>
+
+
+---
+
+2. prefectures.js
+
+// 都道府県リストを配列で定義
+const prefectures = [
+    "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
+    "茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県",
+    "新潟県", "富山県", "石川県", "福井県", "山梨県", "長野県", "岐阜県",
+    "静岡県", "愛知県", "三重県", "滋賀県", "京都府", "大阪府", "兵庫県",
+    "奈良県", "和歌山県", "鳥取県", "島根県", "岡山県", "広島県", "山口県",
+    "徳島県", "香川県", "愛媛県", "高知県", "福岡県", "佐賀県", "長崎県",
+    "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"
+];
+
+
+---
+
+変更点一覧
+
+変更箇所1: 都道府県リストを外部ファイル（prefectures.js）で管理
+
+都道府県リストを外部ファイルに定義し、const prefecturesとして管理します。
+
+
+変更箇所2: 動的に都道府県リストを生成
+
+ページロード時（DOMContentLoaded）に都道府県の選択肢を生成する処理を追加しました。
+
+
+変更箇所3: 都道府県の選択フィールドを追加
+
+<select>タグを追加し、都道府県を選択できるようにしました。
+
+
+
+---
+
+使い方
+
+1. index.html と prefectures.js を同じフォルダ内に保存。
+
+
+2. ブラウザで index.html を開く。
+
+
+3. 名前、都道府県（選択）、電話番号、相談内容を入力してデータを追加。
+
+
+
+メリット
+
+都道府県リストを外部ファイルで管理するため、コードの再利用性が向上。
+
+入力ミスを防ぐため、都道府県を選択式に変更。
+
+
+必要に応じてさらにカスタマイズできます！
+
