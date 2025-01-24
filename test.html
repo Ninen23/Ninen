@@ -1,3 +1,77 @@
+Sub SaveEmailsAsPDF()
+    Dim OutlookApp As Object
+    Dim OutlookNamespace As Object
+    Dim OutlookFolder As Object
+    Dim OutlookMail As Object
+    Dim SubjectKeyword As String
+    Dim SavePath As String
+    Dim ReceivedDate As Date
+    
+    ' 変数設定
+    SubjectKeyword = "◯◯" ' 件名に含まれるキーワード
+    SavePath = "C:\EmailsPDF\" ' PDFを保存するフォルダ
+    ReceivedDate = Date ' 本日の日付
+    
+    ' Outlookアプリケーションを取得
+    On Error Resume Next
+    Set OutlookApp = GetObject(, "Outlook.Application")
+    If OutlookApp Is Nothing Then
+        Set OutlookApp = CreateObject("Outlook.Application")
+    End If
+    On Error GoTo 0
+    
+    ' Outlookの受信トレイを取得
+    Set OutlookNamespace = OutlookApp.GetNamespace("MAPI")
+    Set OutlookFolder = OutlookNamespace.GetDefaultFolder(6) ' 6 = 受信トレイ
+    
+    ' 受信トレイのメールをループ
+    For Each OutlookMail In OutlookFolder.Items
+        If OutlookMail.ReceivedTime >= ReceivedDate And OutlookMail.ReceivedTime < (ReceivedDate + 1) Then
+            If InStr(OutlookMail.Subject, SubjectKeyword) > 0 Then
+                ' メールをPDFとして保存
+                SaveEmailAsPDF OutlookMail, SavePath
+            End If
+        End If
+    Next OutlookMail
+    
+    ' 後処理
+    Set OutlookMail = Nothing
+    Set OutlookFolder = Nothing
+    Set OutlookNamespace = Nothing
+    Set OutlookApp = Nothing
+    
+    MsgBox "処理が完了しました。", vbInformation
+End Sub
+
+Sub SaveEmailAsPDF(OutlookMail As Object, SavePath As String)
+    Dim WordDoc As Object
+    Dim TempFilePath As String
+    Dim PDFFilePath As String
+    
+    ' 一時的なWordファイルのパス
+    TempFilePath = Environ("TEMP") & "\TempEmail.doc"
+    PDFFilePath = SavePath & Format(OutlookMail.ReceivedTime, "yyyymmdd_HHMMSS") & ".pdf"
+    
+    ' メールをWord形式で保存
+    OutlookMail.SaveAs TempFilePath, 0 ' 0 = Word形式
+    
+    ' Wordを開いてPDFに変換
+    On Error Resume Next
+    Set WordApp = CreateObject("Word.Application")
+    Set WordDoc = WordApp.Documents.Open(TempFilePath)
+    WordDoc.ExportAsFixedFormat PDFFilePath, 17 ' 17 = PDF形式
+    WordDoc.Close False
+    WordApp.Quit
+    On Error GoTo 0
+    
+    ' 一時ファイルを削除
+    Kill TempFilePath
+    
+    ' 後処理
+    Set WordDoc = Nothing
+    Set WordApp = Nothing
+End Sub
+
 以下は、都道府県の選択を追加するために変更した箇所を明示しつつ、説明を追加したバージョンです。
 
 
