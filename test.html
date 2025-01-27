@@ -8,6 +8,76 @@
 </head>
 <body>
     <pre><code class="vb">
+
+Option Explicit
+
+Private Sub Workbook_Open()
+    ' プルダウンリストを初期化
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets(1)
+    With ws.Range("A1")
+        .Value = "パスワード選択:"
+        .Font.Bold = True
+    End With
+    
+    With ws.Range("B1").Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:="1234,abcd,passw0rd"
+        .IgnoreBlank = True
+        .InCellDropdown = True
+        .ShowInput = True
+    End With
+    
+    ws.Range("B1").Value = "1234" ' デフォルト値
+    MsgBox "ドラッグ＆ドロップする準備ができました", vbInformation
+End Sub
+
+Sub SaveDraggedFileWithPassword()
+    Dim fd As FileDialog
+    Dim filePath As String
+    Dim destPath As String
+    Dim selectedPassword As String
+    Dim wb As Workbook
+    
+    ' ファイル選択ダイアログを表示
+    Set fd = Application.FileDialog(msoFileDialogFilePicker)
+    fd.Title = "ファイルを選択してください"
+    fd.Filters.Clear
+    fd.Filters.Add "Excel Files", "*.xls; *.xlsx; *.xlsm"
+    fd.AllowMultiSelect = False
+    
+    If fd.Show = -1 Then
+        filePath = fd.SelectedItems(1)
+    Else
+        MsgBox "ファイルが選択されませんでした。", vbExclamation
+        Exit Sub
+    End If
+    
+    ' プルダウンリストからパスワードを取得
+    selectedPassword = ThisWorkbook.Sheets(1).Range("B1").Value
+    
+    ' 保存先のパスを設定
+    destPath = Replace(filePath, ".xls", "_protected.xls")
+    destPath = Replace(destPath, ".xlsx", "_protected.xlsx")
+    destPath = Replace(destPath, ".xlsm", "_protected.xlsm")
+    
+    ' ファイルを開く
+    Set wb = Workbooks.Open(filePath)
+    
+    ' パスワードを設定して保存
+    Application.DisplayAlerts = False
+    wb.SaveAs Filename:=destPath, Password:=selectedPassword, FileFormat:=xlOpenXMLWorkbook
+    Application.DisplayAlerts = True
+    
+    ' 保存完了の通知
+    MsgBox "パスワードを設定して保存しました:" & vbCrLf & destPath, vbInformation
+    
+    ' ファイルを閉じる
+    wb.Close SaveChanges:=False
+End Sub
+
+
+        
 Option Compare Database
 
 Public Const BASEMAIL_PATH As String = "E:\work\" ' 保存フォルダパス
