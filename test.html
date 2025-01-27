@@ -9,275 +9,119 @@
 <body>
     <pre><code class="vb">
 
+' Export解析シートフィルタリング結果
+Sub 保管中の証拠物件一覧()
+    Export "保管中の証拠物件一覧"
+End Sub
 
+Sub 対応中の解析要請一覧()
+    Export "対応中の解析要請一覧"
+End Sub
 
-Sub AddMultiplePasswords_PartialMatch()
-    Dim folderPath As String
-    Dim fileName As String
+Sub 解析終了()
+    Export "解析終了一覧"
+End Sub
+
+Sub 解析状況未着手()
+    Export "未着手解析要請一覧"
+End Sub
+
+Sub Export(filter As String)
     Dim wb As Workbook
-    Dim ws As Worksheet
-    Dim fileRow As Range
-    Dim password As String
-    Dim processedCount As Integer
-    Dim fileCount As Integer
-
-    ' フォルダ選択ダイアログを表示
-    With Application.FileDialog(msoFileDialogFolderPicker)
-        .Title = "パスワードを設定するフォルダを選択してください"
-        If .Show = -1 Then
-            folderPath = .SelectedItems(1) & "\"
-        Else
-            MsgBox "フォルダが選択されませんでした。", vbExclamation
-            Exit Sub
-        End If
-    End With
-
-    ' パスワードリストがあるシートを指定
-    Set ws = ThisWorkbook.Sheets("Sheet1")
-
-    ' ファイル処理開始
-    Application.ScreenUpdating = False
-    fileName = Dir(folderPath & "*.xls*")
-    fileCount = 0
-    processedCount = 0
-
-    Do While fileName <> ""
-        fileCount = fileCount + 1
-        On Error Resume Next
-        
-        ' 対応するパスワードを取得（部分一致検索）
-        Set fileRow = ws.Columns("A").Find(what:=fileName, LookIn:=xlValues, lookat:=xlPart)
-        If Not fileRow Is Nothing Then
-            password = ws.Cells(fileRow.Row, "B").Value
-        Else
-            password = "" ' パスワードが見つからない場合は空白
-        End If
-
-        ' ファイルを開き、パスワードを設定して保存
-        Set wb = Workbooks.Open(folderPath & fileName)
-        If Not wb Is Nothing Then
-            wb.Password = password
-            wb.SaveAs Filename:=folderPath & "Protected_" & fileName, Password:=password, FileFormat:=xlOpenXMLWorkbook
-            wb.Close SaveChanges:=False
-            processedCount = processedCount + 1
-        End If
-        On Error GoTo 0
-
-        fileName = Dir
-    Loop
-    Application.ScreenUpdating = True
-
-    ' 結果を表示
-    MsgBox fileCount & " ファイル中 " & processedCount & " ファイルにパスワードを設定しました。", vbInformation
-End Sub
-
-
-
-        
-Option Explicit
-
-Private Sub Workbook_Open()
-    ' プルダウンリストを初期化
-    Dim ws As Worksheet
-    Set ws = ThisWorkbook.Sheets(1)
-    With ws.Range("A1")
-        .Value = "パスワード選択:"
-        .Font.Bold = True
-    End With
-    
-    With ws.Range("B1").Validation
-        .Delete
-        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:="1234,abcd,passw0rd"
-        .IgnoreBlank = True
-        .InCellDropdown = True
-        .ShowInput = True
-    End With
-    
-    ws.Range("B1").Value = "1234" ' デフォルト値
-    MsgBox "ドラッグ＆ドロップする準備ができました", vbInformation
-End Sub
-
-Sub SaveDraggedFileWithPassword()
-    Dim fd As FileDialog
+    Dim newBook As Workbook
+    Dim sourceSheet As Worksheet
+    Dim filteredDataRange As Range
     Dim filePath As String
-    Dim destPath As String
-    Dim selectedPassword As String
-    Dim wb As Workbook
+    Dim openFlag As Boolean
+    Dim sheetName As String
+    Dim 活動実績ファイル名 As String
+    'Dim 要請シート名 As String
+    Dim 解析シート名 As String
+    'Dim 支援シート名 As String
+
     
-    ' ファイル選択ダイアログを表示
-    Set fd = Application.FileDialog(msoFileDialogFilePicker)
-    fd.Title = "ファイルを選択してください"
-    fd.Filters.Clear
-    fd.Filters.Add "Excel Files", "*.xls; *.xlsx; *.xlsm"
-    fd.AllowMultiSelect = False
-    
-    If fd.Show = -1 Then
-        filePath = fd.SelectedItems(1)
-    Else
-        MsgBox "ファイルが選択されませんでした。", vbExclamation
+
+    活動実績ファイル名 = Range("G7").Value
+    '要請シート名 = Range("G8").Value
+    解析シート名 = Range("G9").Value
+    '支援シート名 = Range("G10").Value
+    filePath = ThisWorkbook.Path & "\" & 活動実績ファイル名
+
+    ' ファイルが開いているか確認
+    openFlag = False
+    For Each wb In Workbooks
+        If wb.Name = 活動実績ファイル名 Then
+            openFlag = True
+            Exit For
+        End If
+    Next
+    If openFlag = True Then
+        MsgBox 活動実績ファイル名 & "を閉じてから再度実行してください。", vbExclamation
         Exit Sub
     End If
-    
-    ' プルダウンリストからパスワードを取得
-    selectedPassword = ThisWorkbook.Sheets(1).Range("B1").Value
-    
-    ' 保存先のパスを設定
-    destPath = Replace(filePath, ".xls", "_protected.xls")
-    destPath = Replace(destPath, ".xlsx", "_protected.xlsx")
-    destPath = Replace(destPath, ".xlsm", "_protected.xlsm")
-    
+
+
+    ' ファイル存在確認
+    If Len(Dir(filePath)) = 0 Then
+        MsgBox "活動実績ファイルが見つかりません: " & filePath, vbExclamation
+        Exit Sub
+    End If
+
     ' ファイルを開く
     Set wb = Workbooks.Open(filePath)
-    
-    ' パスワードを設定して保存
-    Application.DisplayAlerts = False
-    wb.SaveAs Filename:=destPath, Password:=selectedPassword, FileFormat:=xlOpenXMLWorkbook
-    Application.DisplayAlerts = True
-    
-    ' 保存完了の通知
-    MsgBox "パスワードを設定して保存しました:" & vbCrLf & destPath, vbInformation
-    
-    ' ファイルを閉じる
-    wb.Close SaveChanges:=False
-End Sub
 
 
-        
-Option Compare Database
-
-Public Const BASEMAIL_PATH As String = "E:\work\" ' 保存フォルダパス
-
-
-Sub SaveSpecificEmails()
-    Dim i As Integer
-    Dim olApp As Outlook.Application
-    Dim olNS As Outlook.NameSpace
-    Dim olInbox As Outlook.MAPIFolder
-    Dim olItems As Outlook.Items
-    Dim olItem As Object
-    Dim olMailItem As Outlook.MailItem
-    Dim olAttach As Outlook.Attachment
-    Dim fso As Object
-    Dim safeSubject As String
-
-    Const SEARCH_EMAILS As Integer = 100 ' 処理件数
-    Const titleFilter As String = "質問" ' 検索するキーワード
-
-    ' Outlookアプリケーションを取得
-    Set olApp = CreateObject("Outlook.Application")
-    Set olNS = olApp.GetNamespace("MAPI")
-    Set olInbox = olNS.GetDefaultFolder(olFolderInbox)
-
-    ' Restrictを使用して、部分一致する件名のメールを絞り込む
-    Set olItems = olInbox.Items.Restrict("@SQL=""urn:schemas:httpmail:subject"" LIKE '%" & titleFilter & "%'")
-    olItems.Sort "[ReceivedTime]", True ' 受信日時で降順にソート
-
-    ' FileSystemObject を作成
-    Set fso = CreateObject("Scripting.FileSystemObject")
-
-    ' BASE_PATH の存在確認
-    If Not fso.FolderExists(BASEMAIL_PATH) Then
-        fso.CreateFolder BASEMAIL_PATH
-    End If
-
-    i = 0
-
-    ' 絞り込んだメールを処理
-    If olItems.Count > 0 Then
-        For Each olItem In olItems
-            ' 件数が最大値に達したら終了
-            If i >= SEARCH_EMAILS Then Exit For
-
-            ' メールアイテムかどうかを確認
-            If olItem.Class = olMail Then
-                Set olMailItem = olItem
-
-                ' フォルダ名の生成と特殊文字の置換
-                safeSubject = SanitizeFolderName(olMailItem.Subject)
-                strFolderName = Format(Date, "yyyyMMdd") & "_" & safeSubject
-                strPath = BASEMAIL_PATH & strFolderName
-
-                ' フォルダを作成
-                If Not fso.FolderExists(strPath) Then
-                    fso.CreateFolder strPath
-                End If
-
-                ' 添付ファイルを保存
-                For Each olAttach In olMailItem.Attachments
-                    olAttach.SaveAsFile strPath & "\" & olAttach.FileName
-                Next olAttach
-
-                ' メールを保存
-                On Error Resume Next
-                olMailItem.SaveAs strPath & "\" & strFolderName & ".msg", olMSG
-                On Error GoTo 0
-
-                ' 処理件数を増加
-                i = i + 1
-            End If
-        Next olItem
-
-        MsgBox i & "件のメールを処理しました。" & vbCrLf & "保存先: " & BASEMAIL_PATH, vbInformation
-    Else
-        MsgBox "条件に一致するメールはありません。"
-    End If
-
-    ' オブジェクトの解放
-    Set olAttach = Nothing
-    Set olMailItem = Nothing
-    Set olItem = Nothing
-    Set olItems = Nothing
-    Set olInbox = Nothing
-    Set olNS = Nothing
-    Set olApp = Nothing
-    Set fso = Nothing
-End Sub
-
-Public Function SanitizeFolderName(ByVal folderName As String) As String
-    Dim invalidChars As Variant
-    Dim char As Variant
-
-    invalidChars = Array("/", "\", ":", "*", "?", """", "<", ">", "|")
-    For Each char In invalidChars
-        folderName = Replace(folderName, char, "_")
-    Next char
-    SanitizeFolderName = folderName
-End Function
-
-
-Option Compare Database
-
-
-Sub OpenFolder(ByVal folderPath As String)
-    Dim shellApp As Object
-
-    ' パスをトリムして余分な文字を削除
-    folderPath = Trim(folderPath)
-    folderPath = Replace(folderPath, vbCrLf, "")
-    folderPath = Replace(folderPath, vbTab, "")
-    folderPath = CStr(folderPath)
-    If Right(folderPath, 1) = "\" Then
-        folderPath = Left(folderPath, Len(folderPath) - 1)
-    End If
-
-    ' フォルダの存在確認
-    If Dir(folderPath, vbDirectory) = "" Then
-        MsgBox "指定されたフォルダが存在しません: " & folderPath, vbExclamation
-        Exit Sub
-    End If
-
-    ' フォルダを開く
+    ' シート存在確認
     On Error Resume Next
-    Set shellApp = CreateObject("Shell.Application")
-    shellApp.Open folderPath
-    If Err.Number <> 0 Then
-        MsgBox "フォルダを開く際にエラーが発生しました: " & Err.Description, vbExclamation
-    End If
+    Set sourceSheet = wb.Sheets(解析シート名)
     On Error GoTo 0
+    If sourceSheet Is Nothing Then
+        MsgBox "シートが見つかりません: " & 解析シート名, vbExclamation
+        GoTo Cleanup
+    End If
 
-    ' オブジェクト解放
-    Set shellApp = Nothing
+
+    ' フィルター処理
+    On Error GoTo FilterError
+
+    Select Case filter
+        Case "保管中の証拠物件一覧"
+            sourceSheet.Range("A1").AutoFilter Field:=5, Criteria1:="" '返却・消去していない
+        Case "対応中の解析要請一覧"
+            sourceSheet.Range("A1").AutoFilter Field:=8, Criteria1:="" '報告種提出日が空欄
+        Case "解析終了一覧"
+            sourceSheet.Range("A1").AutoFilter Field:=5, Criteria1:="<>" '消去返却済み
+            sourceSheet.Range("A1").AutoFilter Field:=6, Criteria1:="<>" '報告書提出済み
+        Case "未着手解析要請一覧"
+            sourceSheet.Range("A1").AutoFilter Field:=5, Criteria1:="" '返却・消去していない
+            sourceSheet.Range("A1").AutoFilter Field:=6, Criteria1:="" '報告書未提出"
+            sourceSheet.Range("A1").AutoFilter Field:=61, Criteria1:="" '解析開始日なし"
+        Case Else
+            MsgBox "フィルター条件が不正です: " & filter, vbExclamation
+            GoTo Cleanup
+    End Select
+
+    ' フィルタリング結果の範囲を取得
+    Set filteredDataRange = sourceSheet.AutoFilter.Range.SpecialCells(xlCellTypeVisible)
+
+
+    ' 新規ブック作成
+    Set newBook = Workbooks.Add
+    filteredDataRange.Copy Destination:=newBook.Sheets(1).Range("A1")
+
+
+    MsgBox "処理が完了しました。", vbInformation
+    
+Cleanup:
+    If Not wb Is Nothing Then wb.Close SaveChanges:=False
+    If Not newBook Is Nothing Then newBook.Close SaveChanges:=False
+    Exit Sub
+
+FilterError:
+    MsgBox "エラーが発生しました: " & Err.Description, vbCritical
+    Resume Cleanup
 End Sub
+
 
 
             </code></pre>
