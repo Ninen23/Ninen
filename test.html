@@ -9,6 +9,71 @@
 <body>
     <pre><code class="vb">
 
+
+
+Sub AddMultiplePasswords_PartialMatch()
+    Dim folderPath As String
+    Dim fileName As String
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim fileRow As Range
+    Dim password As String
+    Dim processedCount As Integer
+    Dim fileCount As Integer
+
+    ' フォルダ選択ダイアログを表示
+    With Application.FileDialog(msoFileDialogFolderPicker)
+        .Title = "パスワードを設定するフォルダを選択してください"
+        If .Show = -1 Then
+            folderPath = .SelectedItems(1) & "\"
+        Else
+            MsgBox "フォルダが選択されませんでした。", vbExclamation
+            Exit Sub
+        End If
+    End With
+
+    ' パスワードリストがあるシートを指定
+    Set ws = ThisWorkbook.Sheets("Sheet1")
+
+    ' ファイル処理開始
+    Application.ScreenUpdating = False
+    fileName = Dir(folderPath & "*.xls*")
+    fileCount = 0
+    processedCount = 0
+
+    Do While fileName <> ""
+        fileCount = fileCount + 1
+        On Error Resume Next
+        
+        ' 対応するパスワードを取得（部分一致検索）
+        Set fileRow = ws.Columns("A").Find(what:=fileName, LookIn:=xlValues, lookat:=xlPart)
+        If Not fileRow Is Nothing Then
+            password = ws.Cells(fileRow.Row, "B").Value
+        Else
+            password = "" ' パスワードが見つからない場合は空白
+        End If
+
+        ' ファイルを開き、パスワードを設定して保存
+        Set wb = Workbooks.Open(folderPath & fileName)
+        If Not wb Is Nothing Then
+            wb.Password = password
+            wb.SaveAs Filename:=folderPath & "Protected_" & fileName, Password:=password, FileFormat:=xlOpenXMLWorkbook
+            wb.Close SaveChanges:=False
+            processedCount = processedCount + 1
+        End If
+        On Error GoTo 0
+
+        fileName = Dir
+    Loop
+    Application.ScreenUpdating = True
+
+    ' 結果を表示
+    MsgBox fileCount & " ファイル中 " & processedCount & " ファイルにパスワードを設定しました。", vbInformation
+End Sub
+
+
+
+        
 Option Explicit
 
 Private Sub Workbook_Open()
