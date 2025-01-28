@@ -1,0 +1,348 @@
+
+スクリーン リーダーのサポートが有効になっています。
+無題のフォーム
+0 件の回答
+無題の質問
+1 件の回答
+
+Sub レポート()
+
+Dim 活動実績ファイル名, 要請シート名, 解析シート名, 支援シート名 As String
+Dim レポート開始日, レポート終了日 As String
+Dim youseisheet, kaisekisheet, shensheet As Worksheet
+Dim i, j As Long
+Dim filePath, filename As String
+Dim wb As Workbook
+Dim flg As Double
+Dim 管理番号() As Variant
+Dim lastRow, lastRow2, lastRow3 As Long
+Dim filteredRange, cell As Range
+
+
+'初期設定情報を読み込む
+活動実績ファイル名 = Range("G7").Value
+要請シート名 = Range("G8").Value
+解析シート名 = Range("G9").Value
+支援シート名 = Range("G10").Value
+'レポート作成の期間取得
+レポート開始日 = Range("G14").Value
+レポート終了日 = Range("I14").Value
+
+
+'活動実績を開いているかチェック
+filePath = ThisWorkbook.Path + "\" + 活動実績ファイル名
+filename = Dir(filePath)
+
+For Each wb In Workbooks
+If wb.Name = filename Then
+flg = True
+Exit For
+End If
+Next
+
+If flg = True Then
+MsgBox 活動実績ファイル名 & "を閉じてから再度実行してください。"
+Exit Sub
+
+Else
+Workbooks.Open filePath
+End If
+
+
+'シート名設定
+Set youseisheet = ActiveWorkbook.Worksheets(要請シート名)
+Set kaisekisheet = ActiveWorkbook.Worksheets(解析シート名)
+Set shiensheet = ActiveWorkbook.Worksheets(支援シート名)
+
+'----------------------------------------
+
+'｛【管理番号】【解析件数・支援】｝
+
+'----------------------------------------
+
+'配列に管理番号、集計期間フラグ設定
+lastRow = youseisheet.UsedRange.Rows.Count
+ReDim 管理番号(lastRow - 1, 2)
+
+For i = 0 To lastRow - 1
+管理番号(i, 0) = youseisheet.Cells(i + 1, 2)
+管理番号(i, 1) = "0"
+管理番号(i, 2) = "0"
+Next i
+
+
+'管理番号をもとに解析シートから集計期間に含まれるもののフラグを付ける
+lastRow2 = kaisekisheet.UsedRange.Rows.Count
+For i = 0 To lastRow - 1
+For j = 2 To lastRow2
+If IsDate(kaisekisheet.Cells(j, 6)) = True Then
+If 管理番号(i, 0) = kaisekisheet.Cells(j, 2) And CDate(kaisekisheet.Cells(j, 8)) >= レポート開始日 And CDate(kaisekisheet.Cells(j, 6)) <= レポート終了日 Then
+管理番号(i, 1) = 管理番号(i, 1) + 1
+End If
+End If
+Next j
+Next i
+
+'集計期間に含まれる支援をチェック
+lastRow3 = shiensheet.UsedRange.Rows.Count '支援シートの件数（最終行を取得）
+For i = 1 To lastRow
+For j = 2 To lastRow3
+If IsDate(shiensheet.Cells(j, 10)) = True Then
+If 管理番号(i, 0) = shiensheet.Cells(j, 2) And CDate(shiensheet.Cells(j, 10)) >= レポート開始日 And CDate(shiensheet.Cells(j, 10)) <= レポート終了日 Then
+管理番号(i, 2) = 管理番号(i, 2) + 1
+End If
+End If
+Next j
+Next i
+
+'-------------------------------
+
+'解析シートからレポート情報を抽出
+'レポート期間で絞る
+With kaisekisheet.Cells
+.AutoFilter Field:=8, Criteria1:="<=" & レポート終了日, Criteria2:=">=" & レポート開始日
+
+
+'解析場所別の件数集計
+件数 = 0
+.AutoFilter Field:=10, Criteria1:="解析室", Field:=11, Criteria1:="原本"
+件数 = WorksheetFunction.Subtotal(3, Worksheets(解析シート名).Range("F:F")) - 1
+ThisWorkbook.Sheets("レポート").Range("F13") = 件数
+
+.AutoFilter Field:=10, Criteria1:="<>解析室", Field:=11, Criteria1:="原本"
+件数 = WorksheetFunction.Subtotal(3, Worksheets(解析シート名).Range("F:F")) - 1
+ThisWorkbook.Sheets("レポート").Range("F14") = 件数
+
+
+'解析場所のフィルターを解除
+.AutoFilter
+.AutoFilter Field:=8, Criteria1:="<=" & レポート終了日, Criteria2:=">=" & レポート開始日
+
+'解析人数の集計
+解析人数 = 0
+.AutoFilter 55, "<>"
+解析人数 = WorksheetFunction.Subtotal(3, Worksheets(解析シート名).Range("BC:BC")) - 1
+.AutoFilter 56, "<>"
+解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, Worksheets(解析シート名).Range("BD:BD")) - 1
+.AutoFilter 57, "<>"
+解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, Worksheets(解析シート名).Range("BE:BE")) - 1
+.AutoFilter 58, "<>"
+解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, Worksheets(解析シート名).Range("BF:BF")) - 1
+.AutoFilter 59, "<>"
+解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, Worksheets(解析シート名).Range("BG:BG")) - 1
+.AutoFilter 60, "<>"
+解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, Worksheets(解析シート名).Range("BH:BH")) - 1
+
+'解析人数のフィルターを解除&期間を再設定
+.AutoFilter
+.AutoFilter Field:=8, Criteria1:="<=" & レポート終了日, Criteria2:=">=" & レポート開始日
+
+'解析期間の集計
+Set filteredRange = .Range("BI2:BI" & lastRow2).SpecialCells(xlCellTypeVisible)
+解析日数 = 0
+For Each cell In filteredRange
+If cell.Value2 <> "" And cell.Offset(0, 1).Value2 <> "" And cell.Offset(0, 1).Value2 >= cell.Value2 Then
+解析日数 = 解析日数 + cell.Offset(0, 1).Value2 - cell.Value2 + 1
+End If
+Next cell
+
+
+
+'解析対象物の集計
+計算用 = 0
+.AutoFilter 11, "原本", xlOr, "副本"
+'パソコン
+.AutoFilter 12, "パソコン"
+件数 = WorksheetFunction.Subtotal(3, Worksheets(解析シート名).Range("L:L")) - 1
+ThisWorkbook.Sheets("レポート").Range("C12") = 件数
+計算用 = 計算用 + 件数
+
+'携帯電話
+.AutoFilter 12, "携帯電話"
+件数 = WorksheetFunction.Subtotal(3, Worksheets(解析シート名).Range("L:L")) - 1
+ThisWorkbook.Sheets("レポート").Range("C13") = 件数
+計算用 = 計算用 + 件数
+'タブレット
+.AutoFilter 12, "タブレット"
+件数 = WorksheetFunction.Subtotal(3, Worksheets(解析シート名).Range("L:L")) - 1
+ThisWorkbook.Sheets("レポート").Range("C14") = 件数
+計算用 = 計算用 + 件数
+'記録媒体
+.AutoFilter 12, "記録媒体"
+件数 = WorksheetFunction.Subtotal(3, Worksheets(解析シート名).Range("L:L")) - 1
+ThisWorkbook.Sheets("レポート").Range("C15") = 件数
+計算用 = 計算用 + 件数
+'カーナビ・IVI
+.AutoFilter 12, "カーナビ・IVI"
+件数 = WorksheetFunction.Subtotal(3, Worksheets(解析シート名).Range("L:L")) - 1
+ThisWorkbook.Sheets("レポート").Range("C16") = 件数
+計算用 = 計算用 + 件数
+'その他
+.AutoFilter 12, "その他"
+件数 = WorksheetFunction.Subtotal(3, Worksheets(解析シート名).Range("L:L")) - 1
+ThisWorkbook.Sheets("レポート").Range("C17") = 件数
+
+'証拠物件フィルタ解除
+.AutoFilter 12
+
+'不正プログラム解析
+.AutoFilter 35, "<>", xlAnd, "<>0" '不正プログラム検索したものを計上
+件数 = WorksheetFunction.Subtotal(3, Worksheets(解析シート名).Range("AI:AI")) - 1
+ThisWorkbook.Sheets("レポート").Range("F18") = 件数
+.AutoFilter 35
+End With
+'解析シートからのレポート作成終了
+
+
+
+'支援シートからレポート情報を抽出
+With shiensheet.Cells
+'レポート期間で絞る
+.AutoFilter 7, Criteria1:="<=" & レポート終了日, Criteria2:=">=" & レポート開始日 '報告書提出日の日付で集計する場合はフィルターを10に変更
+
+'支援人数別の集計
+
+.AutoFilter 11, "<>"
+解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, Worksheets(支援シート名).Range("K:K")) - 1
+.AutoFilter 12, "<>"
+解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, Worksheets(支援シート名).Range("L:L")) - 1
+.AutoFilter 13, "<>"
+解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, Worksheets(支援シート名).Range("M:M")) - 1
+.AutoFilter 14, "<>"
+解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, Worksheets(支援シート名).Range("N:N")) - 1
+
+
+'支援人数のフィルターを解除&期間を再設定
+.AutoFilter
+.AutoFilter 7, Criteria1:="<=" & レポート終了日, Criteria2:=">=" & レポート開始日 '報告書提出日の日付で集計する場合はフィルターを10に変更
+
+
+'支援期間の集計（支終了日と開始日の差）
+For i = 2 To lastRow3
+If shiensheet.Cells(i, 7).Value <> "" And shiensheet.Cells(i, 7).Value <> "" Then '
+解析日数 = 解析日数 + shiensheet.Cells(i, 7).Value2 - shiensheet.Cells(i, 6).Value2 + 1
+End If
+Next i
+End With
+
+
+
+
+'
+'要請シートからレポート情報を抽出
+With youseisheet.Cells
+
+'解析要請数をカウント
+'報告期間に含まれるもののみ（その期間に含まれる解析対象物が1以上の要請）
+解析 = 0
+支援依頼 = 0
+鑑定嘱託 = 0
+上位局依頼 = 0
+総警務 = 0
+刑事組対 = 0
+生安 = 0
+交通 = 0
+警備公安外事 = 0
+他官庁 = 0
+その他 = 0
+
+For i = 2 To lastRow - 1
+'解析件数からカウント（解析、鑑定嘱託）
+If 管理番号(i, 1) <> 0 Then
+Select Case .Cells(i, 4)
+Case "解析"
+解析 = 解析 + 1
+Case "支援依頼"
+支援依頼 = 支援依頼 + 1
+Case "鑑定嘱託"
+鑑定嘱託 = 鑑定嘱託 + 1
+End Select
+'要請部門の集計
+Select Case .Cells(i, 5)
+Case "総警務"
+総警務 = 総警務 + 1
+Case "刑事組対"
+刑事組対 = 刑事組対 + 1
+Case "生安（地域）"
+生安 = 生安 + 1
+Case "交通"
+交通 = 交通 + 1
+Case "警備公安外事"
+警備公安外事 = 警備公安外事 + 1
+Case "他官庁"
+他官庁 = 他官庁 + 1
+Case Else
+その他 = その他 + 1
+End Select
+
+
+'上位局への依頼件数をカウント（解析のみでカウント）
+If .Cells(i, 15) = True Then
+上位局依頼 = 上位局依頼 + 1
+End If
+End If
+
+'支援数からカウント（支援依頼を想定）
+If 管理番号(i, 2) <> 0 Then
+Select Case .Cells(i, 4)
+Case "解析"
+解析 = 解析 + 1
+Case "支援依頼"
+支援依頼 = 支援依頼 + 1
+Case "鑑定嘱託"
+鑑定嘱託 = 鑑定嘱託 + 1
+End Select
+
+'支援の要請部門を集計（数は解析と合算とする）
+Select Case .Cells(i, 5)
+Case "総警務"
+総警務 = 総警務 + 1
+Case "刑事組対"
+刑事組対 = 刑事組対 + 1
+Case "生安（地域）"
+生安 = 生安 + 1
+Case "交通"
+交通 = 交通 + 1
+Case "警備公安外事"
+警備公安外事 = 警備公安外事 + 1
+Case "他官庁"
+他官庁 = 他官庁 + 1
+Case Else
+その他 = その他 + 1
+End Select
+
+
+End If
+
+Next i
+
+
+
+'抽出した情報をセルに書き込み
+ThisWorkbook.Sheets("レポート").Range("G3") = レポート開始日 & "～" & レポート終了日
+ThisWorkbook.Sheets("レポート").Range("F7") = 解析
+ThisWorkbook.Sheets("レポート").Range("F8") = 支援依頼
+ThisWorkbook.Sheets("レポート").Range("F9") = 鑑定嘱託
+ThisWorkbook.Sheets("レポート").Range("C21") = 上位局依頼
+ThisWorkbook.Sheets("レポート").Range("I7") = 刑事組対
+ThisWorkbook.Sheets("レポート").Range("I8") = 生安
+ThisWorkbook.Sheets("レポート").Range("I9") = 交通
+ThisWorkbook.Sheets("レポート").Range("I10") = 総警務
+ThisWorkbook.Sheets("レポート").Range("I11") = 警備公安外事
+ThisWorkbook.Sheets("レポート").Range("I12") = 他官庁
+ThisWorkbook.Sheets("レポート").Range("I13") = その他
+ThisWorkbook.Sheets("レポート").Range("C8") = 解析人数
+ThisWorkbook.Sheets("レポート").Range("C7") = 解析日数
+
+End With
+
+
+'活動実績ファイルを閉じる
+Workbooks(filename).Close False
+End Sub
+
+0 件の回答
+この質問にはまだ回答がありません。
+無題のセクション
+
+.
