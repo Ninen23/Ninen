@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>装備ステータス確率計算</title>
+  <title>装備ステータス確率計算【任意成功数設定】</title>
   <style>
     body { font-family: sans-serif; margin: 20px; }
     label { display: block; margin-top: 10px; }
@@ -11,10 +11,14 @@
   </style>
 </head>
 <body>
-  <h1>装備ステータス確率計算</h1>
+  <h1>装備ステータス確率計算【任意成功数設定】</h1>
   <p>
-    装備は13種類中から5種類が付与され、そのうちターゲットとするのは A および C, D, E, F です。<br>
-    <strong>ターゲット条件：</strong> A は「レベル ≥ X」、C～F は「レベル ≥ Y」
+    装備は13種類中から5種類が付与され、そのうちターゲットは S = {A, C, D, E, F} の5種類です。<br>
+    各対象について、<br>
+    ・タイプAは「レベル ≥ X」（Xは入力値、1～4の間）<br>
+    ・タイプC～Fは「レベル ≥ Y」（Yは入力値、1～8の間）<br>
+    に成功したとみなし、<br>
+    装備内に付与されるターゲットのうち、ユーザーが指定した「成功数（任意個数以上）」となれば、その装備は条件を満たすとします。
   </p>
   <form id="calcForm">
     <div class="group">
@@ -26,6 +30,10 @@
       <label>
         タイプC～Fの閾値（1～8）:
         <input type="number" id="thX" value="5" min="1" max="8">
+      </label>
+      <label>
+        装備内のターゲットステータスのうち、成功とみなす必要がある個数:
+        <input type="number" id="reqCount" value="4" min="1" max="5">
       </label>
     </div>
 
@@ -56,7 +64,7 @@
   <div id="result"></div>
 
   <script>
-    // 組み合わせを計算する関数（nCk）
+    // 組み合わせ (nCk) を計算する関数
     function combination(n, k) {
       let num = 1, den = 1;
       for (let i = 1; i <= k; i++) {
@@ -66,90 +74,124 @@
       return num / den;
     }
 
-    // 指定したグループの確率分布から、閾値以上となる確率を求める
-    // probs: 配列（例： [12.43,46.21,38.57,2.79]） ※合計は100になる前提
+    // 指定したグループの確率分布から、閾値以上となる確率を算出する
+    // probs: 配列（例：[12.43,46.21,38.57,2.79]） ※合計は100前提
     // th: 閾値（例えば、タイプAなら3、タイプXなら5）
     function successProbability(probs, th) {
       let sum = 0;
-      // 配列のインデックスは0～（レベル1～）
       for (let i = th - 1; i < probs.length; i++) {
         sum += parseFloat(probs[i]);
       }
-      return sum / 100; // パーセンテージ→確率
+      return sum / 100;
     }
 
+    // 指定された確率配列 (probArray) を用い、成功確率を計算する関数
+    // probArray: 例 [p1, p2, ..., p_m] （mは対象数）
+    // req: 必要な成功数
+    function computeCombinationSuccess(probArray, req) {
+      let m = probArray.length;
+      let total = 0;
+      // 全状態は 2^m 通り。mが小さいのでビット全探索可能
+      let outcomes = Math.pow(2, m);
+      for (let mask = 0; mask < outcomes; mask++) {
+        let countSuccess = 0;
+        let prob = 1;
+        for (let i = 0; i < m; i++) {
+          if (mask & (1 << i)) {
+            // i番目が成功
+            prob *= probArray[i];
+            countSuccess++;
+          } else {
+            // 失敗
+            prob *= (1 - probArray[i]);
+          }
+        }
+        if (countSuccess >= req) {
+          total += prob;
+        }
+      }
+      return total;
+    }
+
+    // 全体計算
     function calculate() {
-      // 閾値の取得
-      let thA = parseInt(document.getElementById("thA").value);  // タイプA用
-      let thX = parseInt(document.getElementById("thX").value);  // タイプC～F用
+      // 入力値取得
+      let thA = parseInt(document.getElementById("thA").value); // タイプA閾値
+      let thX = parseInt(document.getElementById("thX").value); // タイプC～F閾値
+      let reqCount = parseInt(document.getElementById("reqCount").value); // 装備内で必要な成功個数
 
       // タイプAの確率（レベル1～4）
       let probsA = [
-        document.getElementById("A1").value,
-        document.getElementById("A2").value,
-        document.getElementById("A3").value,
-        document.getElementById("A4").value
+        parseFloat(document.getElementById("A1").value),
+        parseFloat(document.getElementById("A2").value),
+        parseFloat(document.getElementById("A3").value),
+        parseFloat(document.getElementById("A4").value)
       ];
       // タイプC～Fの確率（レベル1～8）
       let probsX = [
-        document.getElementById("X1").value,
-        document.getElementById("X2").value,
-        document.getElementById("X3").value,
-        document.getElementById("X4").value,
-        document.getElementById("X5").value,
-        document.getElementById("X6").value,
-        document.getElementById("X7").value,
-        document.getElementById("X8").value
+        parseFloat(document.getElementById("X1").value),
+        parseFloat(document.getElementById("X2").value),
+        parseFloat(document.getElementById("X3").value),
+        parseFloat(document.getElementById("X4").value),
+        parseFloat(document.getElementById("X5").value),
+        parseFloat(document.getElementById("X6").value),
+        parseFloat(document.getElementById("X7").value),
+        parseFloat(document.getElementById("X8").value)
       ];
 
       // 各成功確率の算出
-      let pA = successProbability(probsA, thA);  // タイプAが閾値以上となる確率
-      let pX = successProbability(probsX, thX);  // タイプC～Fが閾値以上となる確率
+      let pA = successProbability(probsA, thA); // タイプAの成功確率
+      let pX = successProbability(probsX, thX); // タイプC～Fの成功確率
 
-      // 装備は13種類中から5種類を重複なく付与
-      // ターゲットとなるステータスは S = {A, C, D, E, F} の5種類
-      // 装備内に m 個のターゲットステータスが現れる確率は
-      // P(m) = (C(5, m) * C(8, 5-m)) / C(13, 5)
+      // S = {A, C, D, E, F} のうち、各要素の成功確率は固定：
+      // A: pA, その他（C～F）: pX
+      // 装備では13種類中から5種類が付与され、ターゲットとなる S の出現数 m は 0～5
       let totalComb = combination(13, 5);
-      let p_m = [];  // m=0,...,5
+      let p_m = []; // m=0,...,5の確率
       for (let m = 0; m <= 5; m++) {
         p_m[m] = (combination(5, m) * combination(8, 5 - m)) / totalComb;
       }
-      // ここでは、4個以上の成功が条件なので、m<4では絶対達成できない
-      // ※ m=4 の場合、4 target が付与され、その4個すべてが「成功」している必要がある
-      //  m=5 の場合は、5 target 中、成功数が4以上でOK
 
-      let p_success = 0; // 全体の確率
+      // 各 m について、装備に現れた m 個のターゲットステータスが、
+      // ユーザー指定の reqCount 以上成功する確率を計算する
+      // m が reqCount 未満の場合は、条件を満たすことは不可能
+      let p_success = 0;
+      // m = 0～(reqCount-1)は自動的に 0 としておく
+      for (let m = reqCount; m <= 5; m++) {
+        // m 個が選ばれた場合、どの組み合わせになるかをすべて列挙し、その成功確率を求める
+        // S の5要素は、固定順序で [A, C, D, E, F]
+        // m個選ばれる組み合わせは、すべての m要素部分集合について計算
+        let indices = [0, 1, 2, 3, 4];
+        let combProbSum = 0;
+        let countComb = 0;
 
-      // ケース m = 4
-      if (p_m[4] > 0) {
-        // 装備内に4個のターゲットが現れた場合、
-        // その内訳は S のうち A が含まれる確率は 4/5（＝1/5の場合は Aが抜ける）
-        // ・Aが含まれる場合: 成功確率 = pA * (pX)^3
-        // ・Aが含まれない場合: 成功確率 = (pX)^4
-        let p_m4 = (4/5) * (pA * Math.pow(pX, 3)) + (1/5) * (Math.pow(pX, 4));
-        p_success += p_m[4] * p_m4;
-      }
+        // 再帰的に部分集合を作成
+        function rec(start, chosen) {
+          if (chosen.length === m) {
+            // chosen は、選ばれた S の各要素のインデックス
+            // 対応する成功確率は：
+            // インデックス 0 → pA, それ以外 → pX
+            let probArray = chosen.map(idx => (idx === 0 ? pA : pX));
+            let p_sub = computeCombinationSuccess(probArray, reqCount);
+            combProbSum += p_sub;
+            countComb++;
+            return;
+          }
+          for (let i = start; i < indices.length; i++) {
+            rec(i + 1, chosen.concat(indices[i]));
+          }
+        }
+        rec(0, []);
 
-      // ケース m = 5
-      if (p_m[5] > 0) {
-        // 装備内に5個のターゲットが現れた場合、組み合わせは必ず A, C, D, E, F
-        // 成功数が4以上の場合の確率は、以下の2パターン：
-        // (1) 全5成功: pA * (pX)^4
-        // (2) ちょうど4成功:
-        //      ・Aが失敗して残り4成功: (1-pA) * (pX)^4
-        //      ・Aは成功し、C～Fのうち1つ失敗: 4 * pA * (pX)^3 * (1-pX)
-        let p_all5 = pA * Math.pow(pX, 4);
-        let p_exactly4 = (1 - pA) * Math.pow(pX, 4) + 4 * pA * Math.pow(pX, 3) * (1 - pX);
-        let p_m5 = p_all5 + p_exactly4;
-        p_success += p_m[5] * p_m5;
+        // m 個のターゲットが現れた場合の平均成功確率
+        let p_m_success = (countComb > 0) ? (combProbSum / countComb) : 0;
+        p_success += p_m[m] * p_m_success;
       }
 
       // 結果表示（パーセンテージ表示）
       let resultArea = document.getElementById("result");
-      resultArea.innerHTML = "<p>1装備あたり、求めるステータスが4個以上付与される確率：<strong>" +
-        (p_success * 100).toFixed(4) + "%</strong></p>";
+      resultArea.innerHTML = "<p>1装備あたり、求めるステータスが" + reqCount +
+        "個以上付与される確率：<strong>" + (p_success * 100).toFixed(4) +
+        "%</strong></p>";
     }
   </script>
-</body>
-</html>
