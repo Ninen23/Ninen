@@ -10,6 +10,64 @@
 </head>
 <body>
     <pre><code class="vb">
+
+Sub AddPasswordToExcelFiles()
+    Dim folderPath As String
+    Dim fileName As String
+    Dim xlApp As Excel.Application
+    Dim xlBook As Excel.Workbook
+    Dim password As String
+    Dim cellValue As String
+    Dim cellAddress As String
+
+    ' フォルダパスを指定
+    folderPath = "C:\YourPath\"
+    ' パスワード取得に使用するセルのアドレスを指定
+    cellAddress = "A1"
+    
+    ' Excelアプリケーションのオブジェクトを作成
+    Set xlApp = New Excel.Application
+    xlApp.Visible = False  ' Excelを非表示にする
+
+    ' フォルダ内のすべてのExcelファイルを検索
+    fileName = Dir(folderPath & "*.xlsx")
+    Do While fileName <> ""
+        ' 各Excelファイルを開く
+        Set xlBook = xlApp.Workbooks.Open(folderPath & fileName)
+        
+        ' 特定のセルの値を取得
+        cellValue = xlBook.Sheets(1).Range(cellAddress).Value
+        
+        ' セルの値に基づいてパスワードを決定
+        password = GeneratePassword(cellValue)
+        
+        ' パスワードを設定して保存
+        xlBook.Password = password
+        xlBook.SaveAs fileName:=folderPath & fileName, Password:=password
+        
+        ' ブックを閉じる
+        xlBook.Close False
+        Set xlBook = Nothing
+        
+        ' 次のファイルに移動
+        fileName = Dir
+    Loop
+
+    ' Excelアプリケーションを終了
+    xlApp.Quit
+    Set xlApp = Nothing
+
+    MsgBox "すべてのファイルにパスワードを設定しました。", vbInformation
+End Sub
+
+' セルの値に基づいてパスワードを生成する関数
+Function GeneratePassword(cellValue As String) As String
+    ' ここでパスワード生成のロジックを実装
+    ' 例として、セルの値に「2025」を付加する
+    GeneratePassword = cellValue & "2025"
+End Function
+
+        
 Sub レポート()
 
     ' 変数の宣言
