@@ -10,7 +10,98 @@
 </head>
 <body>
     <pre><code class="vb">
+Private Sub btnLoadExcel_Click()
+    ' 変数の宣言
+    Dim olApp As Outlook.Application
+    Dim olNs As Outlook.Namespace
+    Dim olMail As Outlook.MailItem
+    Dim olAttachment As Outlook.Attachment
+    Dim xlApp As Excel.Application
+    Dim xlWorkbook As Excel.Workbook
+    Dim xlSheet As Excel.Worksheet
+    Dim tempFolder As String
+    Dim tempFilePath As String
+    Dim fileName As String
+    Dim targetFileName As String
+    Dim i As Long
+    Dim lastRow As Long
 
+    ' 特定のファイル名を含むExcelファイル名を指定
+    targetFileName = "example.xlsx" ' ここを特定のファイル名に変更
+
+    ' 一時フォルダのパスを取得
+    tempFolder = Environ("TEMP") & "\"
+
+    ' Outlookアプリケーションのオブジェクトを取得
+    Set olApp = New Outlook.Application
+    Set olNs = olApp.GetNamespace("MAPI")
+
+    ' 現在選択されているメールアイテムを取得
+    Set olMail = olApp.ActiveExplorer.Selection.Item(1)
+
+    ' メールに添付されているファイルをチェック
+    For Each olAttachment In olMail.Attachments
+        ' 指定されたファイル名を含む添付ファイルを探す
+        If InStr(olAttachment.FileName, targetFileName) > 0 Then
+            ' 添付ファイルを一時フォルダに保存
+            tempFilePath = tempFolder & olAttachment.FileName
+            olAttachment.SaveAsFile tempFilePath
+            
+            ' Excelアプリケーションのオブジェクトを取得
+            Set xlApp = New Excel.Application
+            xlApp.Visible = False ' Excelを非表示にする
+            
+            ' 添付ファイルのExcelファイルを開く
+            Set xlWorkbook = xlApp.Workbooks.Open(tempFilePath)
+            Set xlSheet = xlWorkbook.Sheets(1) ' 必要に応じてシートを指定
+            
+            ' Excelファイルのデータをフォームに読み込む
+            ' 担当者情報の読み込み（例: A1:D1に担当者情報があると仮定）
+            Me.txt担当者1 = xlSheet.Cells(1, 1).Value
+            Me.txt担当者2 = xlSheet.Cells(1, 2).Value
+            Me.txt担当者3 = xlSheet.Cells(1, 3).Value
+            Me.txt担当者4 = xlSheet.Cells(1, 4).Value
+            
+            ' 機種情報の読み込み（例: A2:H2以降に機種情報があると仮定）
+            lastRow = xlSheet.Cells(xlSheet.Rows.Count, "A").End(xlUp).Row
+            For i = 2 To lastRow
+                ' 新しいレコードを追加
+                With Me.subfrm機種情報.Form
+                    .Recordset.AddNew
+                    .Recordset.Fields("機種1") = xlSheet.Cells(i, 1).Value
+                    .Recordset.Fields("機種2") = xlSheet.Cells(i, 2).Value
+                    .Recordset.Fields("機種3") = xlSheet.Cells(i, 3).Value
+                    .Recordset.Fields("機種4") = xlSheet.Cells(i, 4).Value
+                    .Recordset.Fields("機種5") = xlSheet.Cells(i, 5).Value
+                    .Recordset.Fields("機種6") = xlSheet.Cells(i, 6).Value
+                    .Recordset.Fields("機種7") = xlSheet.Cells(i, 7).Value
+                    .Recordset.Fields("機種8") = xlSheet.Cells(i, 8).Value
+                    .Recordset.Update
+                End With
+            Next i
+            
+            ' Excelファイルを閉じる
+            xlWorkbook.Close False
+            xlApp.Quit
+            
+            ' 一時ファイルを削除
+            Kill tempFilePath
+            
+            ' 終了
+            Exit For
+        End If
+    Next olAttachment
+
+    ' オブジェクトの解放
+    Set olMail = Nothing
+    Set olNs = Nothing
+    Set olApp = Nothing
+    Set xlSheet = Nothing
+    Set xlWorkbook = Nothing
+    Set xlApp = Nothing
+    
+    MsgBox "データの読み込みが完了しました。"
+End Sub
 Sub AddPasswordToExcelFiles()
     Dim folderPath As String
     Dim fileName As String
