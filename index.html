@@ -2,133 +2,119 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>装備ステータス確率計算【任意成功数設定】</title>
+  <title>音骸強化シミュレーション</title>
   <style>
     body { font-family: sans-serif; margin: 20px; }
-    label { display: block; margin-top: 10px; }
-    input[type="number"] { width: 60px; }
-    .group { margin: 15px 0; padding: 10px; border: 1px solid #ccc; }
+    .group { border: 1px solid #ccc; padding: 10px; margin-bottom: 15px; }
+    label { display: block; margin-top: 5px; }
+    input[type="number"], input[type="text"] { width: 80px; }
   </style>
 </head>
 <body>
-  <h1>装備ステータス確率計算【任意成功数設定】</h1>
+  <h1>音骸強化シミュレーション</h1>
   <p>
-    装備は13種類中から5種類が付与され、そのうちターゲットは S = {A, C, D, E, F} の5種類です。<br>
-    各対象について、<br>
-    ・タイプAは「レベル ≥ X」（Xは入力値、1～4の間）<br>
-    ・タイプC～Fは「レベル ≥ Y」（Yは入力値、1～8の間）<br>
-    に成功したとみなし、<br>
-    装備内に付与されるターゲットのうち、ユーザーが指定した「成功数（任意個数以上）」となれば、その装備は条件を満たすとします。
+    ※ 以下の入力項目で、各強化試行（レベル25までの強化＋5回のステータス付与）における目標達成確率をシミュレーションします。<br>
+    目標条件：各付与されたスキルについて、<br>
+    ・タイプ A（A, B）の場合：value ≥ minA<br>
+    ・その他（タイプ X）の場合：value ≥ minX<br>
+    となるスキルの数が、全 5 つ中 reqCount 以上なら成功とみなします。<br>
+    また、各強化試行のコストは固定で、コイン：14260、ステータス解放アイテム：50 個（経験値は 142600 EXP 必要）です。
   </p>
-  <form id="calcForm">
+
+  <form id="simForm">
     <div class="group">
-      <h3>閾値設定</h3>
-      <label>
-        タイプAの閾値（1～4）:
-        <input type="number" id="thA" value="3" min="1" max="4">
+      <h3>目標条件</h3>
+      <label>必要成功スキル数 (1～5):
+        <input type="number" id="reqCount" value="3" min="1" max="5">
       </label>
-      <label>
-        タイプC～Fの閾値（1～8）:
-        <input type="number" id="thX" value="5" min="1" max="8">
+      <label>タイプ A の最低 value (1～4):
+        <input type="number" id="minA" value="3" min="1" max="4">
       </label>
-      <label>
-        装備内のターゲットステータスのうち、成功とみなす必要がある個数:
-        <input type="number" id="reqCount" value="4" min="1" max="5">
+      <label>その他の最低 value (1～8):
+        <input type="number" id="minX" value="5" min="1" max="8">
       </label>
     </div>
 
     <div class="group">
-      <h3>確率設定：タイプA（レベル1～4）[%]</h3>
-      <label>レベル1: <input type="number" id="A1" value="12.43" step="0.1"></label>
-      <label>レベル2: <input type="number" id="A2" value="46.21" step="0.1"></label>
-      <label>レベル3: <input type="number" id="A3" value="38.57" step="0.1"></label>
-      <label>レベル4: <input type="number" id="A4" value="2.79" step="0.1"></label>
+      <h3>確率設定：タイプ A（A,B）の value 分布 [%] (合計100%)</h3>
+      <label>Value 1: <input type="number" id="A1" value="12.43" step="0.1"></label>
+      <label>Value 2: <input type="number" id="A2" value="46.21" step="0.1"></label>
+      <label>Value 3: <input type="number" id="A3" value="38.57" step="0.1"></label>
+      <label>Value 4: <input type="number" id="A4" value="2.79" step="0.1"></label>
     </div>
 
     <div class="group">
-      <h3>確率設定：タイプC～F（レベル1～8）[%]</h3>
-      <label>レベル1: <input type="number" id="X1" value="7.39" step="0.1"></label>
-      <label>レベル2: <input type="number" id="X2" value="6.90" step="0.1"></label>
-      <label>レベル3: <input type="number" id="X3" value="20.72" step="0.1"></label>
-      <label>レベル4: <input type="number" id="X4" value="24.90" step="0.1"></label>
-      <label>レベル5: <input type="number" id="X5" value="18.23" step="0.1"></label>
-      <label>レベル6: <input type="number" id="X6" value="13.60" step="0.1"></label>
-      <label>レベル7: <input type="number" id="X7" value="5.34" step="0.1"></label>
-      <label>レベル8: <input type="number" id="X8" value="2.93" step="0.1"></label>
+      <h3>確率設定：タイプ X（その他）の value 分布 [%] (合計100%)</h3>
+      <label>Value 1: <input type="number" id="X1" value="7.39" step="0.1"></label>
+      <label>Value 2: <input type="number" id="X2" value="6.90" step="0.1"></label>
+      <label>Value 3: <input type="number" id="X3" value="20.72" step="0.1"></label>
+      <label>Value 4: <input type="number" id="X4" value="24.90" step="0.1"></label>
+      <label>Value 5: <input type="number" id="X5" value="18.23" step="0.1"></label>
+      <label>Value 6: <input type="number" id="X6" value="13.60" step="0.1"></label>
+      <label>Value 7: <input type="number" id="X7" value="5.34" step="0.1"></label>
+      <label>Value 8: <input type="number" id="X8" value="2.93" step="0.1"></label>
     </div>
 
-    <button type="button" onclick="calculate()">計算する</button>
+    <div class="group">
+      <h3>シミュレーションパラメータ</h3>
+      <label>試行回数:
+        <input type="number" id="simCount" value="10000" min="1">
+      </label>
+    </div>
+
+    <div class="group">
+      <h3>所有リソース（任意入力、空欄なら無限とみなす）</h3>
+      <label>コイン（例: 1000000）:
+        <input type="number" id="coins" placeholder="∞">
+      </label>
+      <label>ステータス解放アイテム (個):
+        <input type="number" id="unlockItems" placeholder="∞">
+      </label>
+    </div>
+
+    <button type="button" onclick="runSimulation()">シミュレーション開始</button>
   </form>
 
-  <h2>結果</h2>
+  <h2>シミュレーション結果</h2>
   <div id="result"></div>
 
   <script>
-    // 組み合わせ (nCk) を計算する関数
-    function combination(n, k) {
-      let num = 1, den = 1;
-      for (let i = 1; i <= k; i++) {
-        num *= (n - i + 1);
-        den *= i;
-      }
-      return num / den;
-    }
-
-    // 指定したグループの確率分布から、閾値以上となる確率を算出する
-    // probs: 配列（例：[12.43,46.21,38.57,2.79]） ※合計は100前提
-    // th: 閾値（例えば、タイプAなら3、タイプXなら5）
-    function successProbability(probs, th) {
-      let sum = 0;
-      for (let i = th - 1; i < probs.length; i++) {
-        sum += parseFloat(probs[i]);
-      }
-      return sum / 100;
-    }
-
-    // 指定された確率配列 (probArray) を用い、成功確率を計算する関数
-    // probArray: 例 [p1, p2, ..., p_m] （mは対象数）
-    // req: 必要な成功数
-    function computeCombinationSuccess(probArray, req) {
-      let m = probArray.length;
-      let total = 0;
-      // 全状態は 2^m 通り。mが小さいのでビット全探索可能
-      let outcomes = Math.pow(2, m);
-      for (let mask = 0; mask < outcomes; mask++) {
-        let countSuccess = 0;
-        let prob = 1;
-        for (let i = 0; i < m; i++) {
-          if (mask & (1 << i)) {
-            // i番目が成功
-            prob *= probArray[i];
-            countSuccess++;
-          } else {
-            // 失敗
-            prob *= (1 - probArray[i]);
-          }
-        }
-        if (countSuccess >= req) {
-          total += prob;
+    // 統一的に乱数で value を選ぶための関数
+    function weightedRandom(probabilities) {
+      // probabilities は各値の確率（小数、合計1になる前提）
+      let r = Math.random();
+      let acc = 0;
+      for (let i = 0; i < probabilities.length; i++) {
+        acc += probabilities[i];
+        if (r < acc) {
+          return i + 1; // 値は1から始まる
         }
       }
-      return total;
+      return probabilities.length;
     }
 
-    // 全体計算
-    function calculate() {
-      // 入力値取得
-      let thA = parseInt(document.getElementById("thA").value); // タイプA閾値
-      let thX = parseInt(document.getElementById("thX").value); // タイプC～F閾値
-      let reqCount = parseInt(document.getElementById("reqCount").value); // 装備内で必要な成功個数
+    // 13種類のステータス名（例として A,B がタイプA、それ以外はタイプX とする）
+    const statuses = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M"];
 
-      // タイプAの確率（レベル1～4）
-      let probsA = [
+    // 固定リソースコスト
+    const coinCostPerAttempt = 14260;      // EXP 必要量 142600 / 10
+    const unlockItemsCostPerAttempt = 50;    // 5回×10個
+
+    function runSimulation() {
+      const reqCount = parseInt(document.getElementById("reqCount").value);
+      const minA = parseInt(document.getElementById("minA").value);
+      const minX = parseInt(document.getElementById("minX").value);
+      const simCount = parseInt(document.getElementById("simCount").value);
+
+      // 確率設定：タイプA（A,B）の value 分布
+      const probsA = [
         parseFloat(document.getElementById("A1").value),
         parseFloat(document.getElementById("A2").value),
         parseFloat(document.getElementById("A3").value),
         parseFloat(document.getElementById("A4").value)
-      ];
-      // タイプC～Fの確率（レベル1～8）
-      let probsX = [
+      ].map(x => x / 100);
+      // 確率設定：タイプX（その他）の value 分布
+      const probsX = [
         parseFloat(document.getElementById("X1").value),
         parseFloat(document.getElementById("X2").value),
         parseFloat(document.getElementById("X3").value),
@@ -137,61 +123,74 @@
         parseFloat(document.getElementById("X6").value),
         parseFloat(document.getElementById("X7").value),
         parseFloat(document.getElementById("X8").value)
-      ];
+      ].map(x => x / 100);
 
-      // 各成功確率の算出
-      let pA = successProbability(probsA, thA); // タイプAの成功確率
-      let pX = successProbability(probsX, thX); // タイプC～Fの成功確率
+      // 有限リソースの入力（空欄なら無限とみなす）
+      const coinsInput = document.getElementById("coins").value;
+      const unlockItemsInput = document.getElementById("unlockItems").value;
+      const availableCoins = coinsInput ? parseInt(coinsInput) : Infinity;
+      const availableUnlockItems = unlockItemsInput ? parseInt(unlockItemsInput) : Infinity;
 
-      // S = {A, C, D, E, F} のうち、各要素の成功確率は固定：
-      // A: pA, その他（C～F）: pX
-      // 装備では13種類中から5種類が付与され、ターゲットとなる S の出現数 m は 0～5
-      let totalComb = combination(13, 5);
-      let p_m = []; // m=0,...,5の確率
-      for (let m = 0; m <= 5; m++) {
-        p_m[m] = (combination(5, m) * combination(8, 5 - m)) / totalComb;
-      }
+      let successCount = 0;
+      // 強化試行1回あたりのリソース消費は固定とする
+      let attempts = 0;
 
-      // 各 m について、装備に現れた m 個のターゲットステータスが、
-      // ユーザー指定の reqCount 以上成功する確率を計算する
-      // m が reqCount 未満の場合は、条件を満たすことは不可能
-      let p_success = 0;
-      // m = 0～(reqCount-1)は自動的に 0 としておく
-      for (let m = reqCount; m <= 5; m++) {
-        // m 個が選ばれた場合、どの組み合わせになるかをすべて列挙し、その成功確率を求める
-        // S の5要素は、固定順序で [A, C, D, E, F]
-        // m個選ばれる組み合わせは、すべての m要素部分集合について計算
-        let indices = [0, 1, 2, 3, 4];
-        let combProbSum = 0;
-        let countComb = 0;
+      for (let i = 0; i < simCount; i++) {
+        attempts++;
+        // まず、ランダムに5個のステータスを、13種類から重複なく選ぶ
+        // シャッフルして先頭5個を採用
+        let statusPool = statuses.slice();
+        for (let j = statusPool.length - 1; j > 0; j--) {
+          const k = Math.floor(Math.random() * (j + 1));
+          [statusPool[j], statusPool[k]] = [statusPool[k], statusPool[j]];
+        }
+        let chosenStatuses = statusPool.slice(0, 5);
 
-        // 再帰的に部分集合を作成
-        function rec(start, chosen) {
-          if (chosen.length === m) {
-            // chosen は、選ばれた S の各要素のインデックス
-            // 対応する成功確率は：
-            // インデックス 0 → pA, それ以外 → pX
-            let probArray = chosen.map(idx => (idx === 0 ? pA : pX));
-            let p_sub = computeCombinationSuccess(probArray, reqCount);
-            combProbSum += p_sub;
-            countComb++;
-            return;
-          }
-          for (let i = start; i < indices.length; i++) {
-            rec(i + 1, chosen.concat(indices[i]));
+        // 各ステータスごとに value を決定
+        let successSkills = 0;
+        for (let s of chosenStatuses) {
+          let value;
+          // タイプ判定：A, B はタイプA、その他はタイプX
+          if (s === "A" || s === "B") {
+            value = weightedRandom(probsA);
+            if (value >= minA) successSkills++;
+          } else {
+            value = weightedRandom(probsX);
+            if (value >= minX) successSkills++;
           }
         }
-        rec(0, []);
-
-        // m 個のターゲットが現れた場合の平均成功確率
-        let p_m_success = (countComb > 0) ? (combProbSum / countComb) : 0;
-        p_success += p_m[m] * p_m_success;
+        // 目標条件：成功スキルの数が reqCount 以上なら成功とする
+        if (successSkills >= reqCount) {
+          successCount++;
+        }
       }
 
-      // 結果表示（パーセンテージ表示）
-      let resultArea = document.getElementById("result");
-      resultArea.innerHTML = "<p>1装備あたり、求めるステータスが" + reqCount +
-        "個以上付与される確率：<strong>" + (p_success * 100).toFixed(4) +
-        "%</strong></p>";
+      const successRate = successCount / simCount;
+      // 期待的に1成功あたり必要な試行回数
+      const avgAttemptsPerSuccess = successRate > 0 ? 1 / successRate : Infinity;
+      // それぞれのリソースの平均消費量
+      const avgCoinCost = avgAttemptsPerSuccess * coinCostPerAttempt;
+      const avgUnlockItemCost = avgAttemptsPerSuccess * unlockItemsCostPerAttempt;
+
+      // もし有限リソースが与えられていれば、何回の成功が期待できるか計算
+      const possibleAttempts = Math.min(
+        availableCoins / coinCostPerAttempt,
+        availableUnlockItems / unlockItemsCostPerAttempt
+      );
+      const expectedSuccesses = possibleAttempts * successRate;
+
+      // 結果表示
+      let resultHTML = `<p>シミュレーション試行回数: ${simCount} 回</p>`;
+      resultHTML += `<p>目標達成成功率: ${(successRate * 100).toFixed(2)}%</p>`;
+      resultHTML += `<p>1成功あたりの平均試行回数: ${avgAttemptsPerSuccess.toFixed(2)} 回</p>`;
+      resultHTML += `<p>1成功あたりの平均コイン消費: ${avgCoinCost.toFixed(0)} コイン</p>`;
+      resultHTML += `<p>1成功あたりの平均ステータス解放アイテム消費: ${avgUnlockItemCost.toFixed(0)} 個</p>`;
+      if (availableCoins !== Infinity && availableUnlockItems !== Infinity) {
+        resultHTML += `<p>所有リソースでの試行可能回数: ${Math.floor(possibleAttempts)} 回</p>`;
+        resultHTML += `<p>期待できる成功数: ${expectedSuccesses.toFixed(2)} 回</p>`;
+      }
+      document.getElementById("result").innerHTML = resultHTML;
     }
   </script>
+</body>
+</html>
