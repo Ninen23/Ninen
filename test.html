@@ -11,6 +11,98 @@
 <body>
     <pre><code class="vb">
 
+
+Sub ExtractZipFromSelectedEmails()
+    Dim olApp As Outlook.Application
+    Dim olExp As Outlook.Explorer
+    Dim Sel As Outlook.Selection
+    Dim itm As Object
+    Dim zipMail As Outlook.MailItem, pwdMail As Outlook.MailItem
+    Dim att As Outlook.Attachment
+    Dim zipFound As Boolean, pwdFound As Boolean
+    Dim saveFolder As String, extractFolder As String, zipFilePath As String
+    Dim pwd As String
+    Dim lines As Variant, line As Variant
+    Dim pos As Long
+    
+    ' 初期設定
+    saveFolder = "C:\Temp\"
+    If Dir(saveFolder, vbDirectory) = "" Then MkDir saveFolder
+    extractFolder = saveFolder & "Extracted\"
+    If Dir(extractFolder, vbDirectory) = "" Then MkDir extractFolder
+    
+    Set olApp = Outlook.Application
+    Set olExp = olApp.ActiveExplorer
+    Set Sel = olExp.Selection
+    
+    zipFound = False: pwdFound = False
+    
+    ' 選択メールからZIP添付メールとパスワードメールを判別する
+    For Each itm In Sel
+        If itm.Class = olMail Then
+            ' 添付ファイルがある場合はZIPファイルをチェック
+            If itm.Attachments.Count > 0 Then
+                For Each att In itm.Attachments
+                    If LCase(Right(att.FileName, 4)) = ".zip" Then
+                        Set zipMail = itm
+                        zipFound = True
+                        Exit For
+                    End If
+                Next att
+            Else
+                ' 添付ファイルが無ければパスワード通知メールと判断
+                If Not pwdFound Then
+                    Set pwdMail = itm
+                    pwdFound = True
+                End If
+            End If
+        End If
+    Next itm
+    
+    If Not (zipFound And pwdFound) Then
+        MsgBox "ZIP 添付メールとパスワード通知メールの両方を選択してください。", vbExclamation
+        Exit Sub
+    End If
+    
+    ' ZIP 添付ファイルを保存
+    For Each att In zipMail.Attachments
+        If LCase(Right(att.FileName, 4)) = ".zip" Then
+            zipFilePath = saveFolder & att.FileName
+            att.SaveAsFile zipFilePath
+            Exit For
+        End If
+    Next att
+    
+    ' パスワード通知メールの本文からパスワードを抽出
+    ' ※例として「Password: 1234」という書式を想定
+    lines = Split(pwdMail.Body, vbCrLf)
+    For Each line In lines
+        pos = InStr(line, "Password:")
+        If pos > 0 Then
+            pwd = Trim(Mid(line, pos + Len("Password:")))
+            Exit For
+        End If
+    Next line
+    
+    If pwd = "" Then
+        MsgBox "パスワードが見つかりませんでした。", vbExclamation
+        Exit Sub
+    End If
+    
+    ' 7-Zip を利用してZIPの解凍（パスワード解除）
+    Dim sevenZipPath As String, cmd As String
+    ' ※7z.exe のパスは環境に合わせて修正してください
+    sevenZipPath = "C:\Program Files\7-Zip\7z.exe"
+    
+    ' コマンド例： 7z.exe x -p[パスワード] -o[出力フォルダ] [ZIPファイルパス] -y
+    cmd = """" & sevenZipPath & """ x -p" & pwd & " -o""" & extractFolder & """ """ & zipFilePath & """ -y"
+    
+    Shell cmd, vbNormalFocus
+    
+    MsgBox "ZIP の解凍処理を開始しました。", vbInformation
+End Sub
+
+        
 モデル名,モデル番号
 iPhone 15 Pro Max,A2849 A3105 A3108 A3106
 iPhone 15 Pro,A2848 A3101 A3104 A3102
