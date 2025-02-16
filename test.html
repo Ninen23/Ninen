@@ -10,562 +10,100 @@
 </head>
 <body>
     <pre><code class="vb">
-
-https://docs.google.com/forms/d/e/1FAIpQLSc3tXsF7a6PGl_QaS_mH9HFQnESJ0uKGdCFYGTiT9m5YPMjXg/viewform?usp=dialog
-Sub ExtractZipFromSelectedEmails()
+Sub SaveAttachmentsByDate()
     Dim olApp As Outlook.Application
-    Dim olExp As Outlook.Explorer
-    Dim Sel As Outlook.Selection
-    Dim itm As Object
-    Dim zipMail As Outlook.MailItem, pwdMail As Outlook.MailItem
-    Dim att As Outlook.Attachment
-    Dim zipFound As Boolean, pwdFound As Boolean
-    Dim saveFolder As String, extractFolder As String, zipFilePath As String
-    Dim pwd As String
-    Dim lines As Variant, line As Variant
-    Dim pos As Long
-    
-    ' 初期設定
-    saveFolder = "C:\Temp\"
-    If Dir(saveFolder, vbDirectory) = "" Then MkDir saveFolder
-    extractFolder = saveFolder & "Extracted\"
-    If Dir(extractFolder, vbDirectory) = "" Then MkDir extractFolder
-    
-    Set olApp = Outlook.Application
-    Set olExp = olApp.ActiveExplorer
-    Set Sel = olExp.Selection
-    
-    zipFound = False: pwdFound = False
-    
-    ' 選択メールからZIP添付メールとパスワードメールを判別する
-    For Each itm In Sel
-        If itm.Class = olMail Then
-            ' 添付ファイルがある場合はZIPファイルをチェック
-            If itm.Attachments.Count > 0 Then
-                For Each att In itm.Attachments
-                    If LCase(Right(att.FileName, 4)) = ".zip" Then
-                        Set zipMail = itm
-                        zipFound = True
-                        Exit For
-                    End If
-                Next att
-            Else
-                ' 添付ファイルが無ければパスワード通知メールと判断
-                If Not pwdFound Then
-                    Set pwdMail = itm
-                    pwdFound = True
-                End If
-            End If
-        End If
-    Next itm
-    
-    If Not (zipFound And pwdFound) Then
-        MsgBox "ZIP 添付メールとパスワード通知メールの両方を選択してください。", vbExclamation
-        Exit Sub
-    End If
-    
-    ' ZIP 添付ファイルを保存
-    For Each att In zipMail.Attachments
-        If LCase(Right(att.FileName, 4)) = ".zip" Then
-            zipFilePath = saveFolder & att.FileName
-            att.SaveAsFile zipFilePath
-            Exit For
-        End If
-    Next att
-    
-    ' パスワード通知メールの本文からパスワードを抽出
-    ' ※例として「Password: 1234」という書式を想定
-    lines = Split(pwdMail.Body, vbCrLf)
-    For Each line In lines
-        pos = InStr(line, "Password:")
-        If pos > 0 Then
-            pwd = Trim(Mid(line, pos + Len("Password:")))
-            Exit For
-        End If
-    Next line
-    
-    If pwd = "" Then
-        MsgBox "パスワードが見つかりませんでした。", vbExclamation
-        Exit Sub
-    End If
-    
-    ' 7-Zip を利用してZIPの解凍（パスワード解除）
-    Dim sevenZipPath As String, cmd As String
-    ' ※7z.exe のパスは環境に合わせて修正してください
-    sevenZipPath = "C:\Program Files\7-Zip\7z.exe"
-    
-    ' コマンド例： 7z.exe x -p[パスワード] -o[出力フォルダ] [ZIPファイルパス] -y
-    cmd = """" & sevenZipPath & """ x -p" & pwd & " -o""" & extractFolder & """ """ & zipFilePath & """ -y"
-    
-    Shell cmd, vbNormalFocus
-    
-    MsgBox "ZIP の解凍処理を開始しました。", vbInformation
-End Sub
-
-        
-モデル名,モデル番号
-iPhone 15 Pro Max,A2849 A3105 A3108 A3106
-iPhone 15 Pro,A2848 A3101 A3104 A3102
-iPhone 15,A2846 A3089 A3092 A3090
-iPhone 15 Plus,A2847 A3093 A3096 A3094
-iPhone 14 Pro Max,A2651 A2893 A2896 A2895 A2894
-iPhone 14 Pro,A2650 A2889 A2892 A2891 A2890
-iPhone 14,A2649 A2881 A2884 A2883 A2882
-iPhone 14 Plus,A2632 A2885 A2888 A2887 A2886
-iPhone SE (第3世代),A2595 A2782 A2784 A2785 A2783
-iPhone 13 Pro Max,A2484 A2641 A2644 A2645 A2643
-iPhone 13 Pro,A2483 A2636 A2639 A2640 A2638
-iPhone 13,A2482 A2631 A2634 A2635 A2633
-iPhone 13 mini,A2342 A2410 A2412 A2411
-iPhone 12 Pro Max,A2342 A2410 A2412 A2411
-iPhone 12 Pro,A2341 A2406 A2408 A2407
-iPhone 12,A2172 A2402 A2404 A2403
-iPhone 12 mini,A2176 A2398 A2400 A2399
-iPhone SE (第2世代),A2275 A2298 A2296
-iPhone 11 Pro,A2160 A2217 A2215
-iPhone 11 Pro Max,A2161 A2220 A2218
-iPhone 11,A2111 A2223 A2221
-iPhone XS,A1920 A2097 A2098
-iPhone XS Max,A1921 A2101 A2102
-iPhone XR,A1984 A2105 A2106
-iPhone X,A1865 A1901 A1902
-iPhone 8,A1863 A1905 A1906
-iPhone 8 Plus,A1864 A1897 A1898
-iPhone 7,A1660 A1778 A1779
-iPhone 7 Plus,A1661 A1784 A1785
-iPhone SE (第1世代),A1723 A1662 A1724
-iPhone 6s,A1633 A1688 A1700
-iPhone 6s Plus,A1634 A1687 A1699
-iPhone 6,A1549 A1586 A1589
-iPhone 6 Plus,A1522 A1524 A1593
-iPhone 5s,A1453 A1457 A1518 A1528 A1530 A1533
-iPhone 5c,A1456 A1507 A1516 A1529 A1532
-iPhone 5,A1428 A1429 A1442
-iPhone 4s,A1431 A1387
-iPhone 4,A1349 A1332
-iPhone 3GS,A1325 A1303
-iPhone 3G,A1324 A1241
-
-        
-Private Sub btnLoadExcel_Click()
-    ' 変数の宣言
-    Dim olApp As Outlook.Application
-    Dim olNs As Outlook.Namespace
+    Dim olNamespace As Outlook.Namespace
+    Dim olFolder As Outlook.MAPIFolder
     Dim olMail As Outlook.MailItem
-    Dim olAttachment As Outlook.Attachment
-    Dim xlApp As Excel.Application
-    Dim xlWorkbook As Excel.Workbook
-    Dim xlSheet As Excel.Worksheet
-    Dim tempFolder As String
-    Dim tempFilePath As String
-    Dim fileName As String
-    Dim targetFileName As String
-    Dim i As Long
-    Dim lastRow As Long
+    Dim i As Integer
+    Dim inputDate As String
+    Dim targetDate As Date
+    Dim saveFolder As String
 
-    ' 特定のファイル名を含むExcelファイル名を指定
-    targetFileName = "example.xlsx" ' ここを特定のファイル名に変更
+    ' ユーザーに日付を入力させる
+    inputDate = InputBox("Enter the date (YYYY-MM-DD):", "Select Date")
 
-    ' 一時フォルダのパスを取得
-    tempFolder = Environ("TEMP") & "\"
-
-    ' Outlookアプリケーションのオブジェクトを取得
-    Set olApp = New Outlook.Application
-    Set olNs = olApp.GetNamespace("MAPI")
-
-    ' 現在選択されているメールアイテムを取得
-    Set olMail = olApp.ActiveExplorer.Selection.Item(1)
-
-    ' メールに添付されているファイルをチェック
-    For Each olAttachment In olMail.Attachments
-        ' 指定されたファイル名を含む添付ファイルを探す
-        If InStr(olAttachment.FileName, targetFileName) > 0 Then
-            ' 添付ファイルを一時フォルダに保存
-            tempFilePath = tempFolder & olAttachment.FileName
-            olAttachment.SaveAsFile tempFilePath
-            
-            ' Excelアプリケーションのオブジェクトを取得
-            Set xlApp = New Excel.Application
-            xlApp.Visible = False ' Excelを非表示にする
-            
-            ' 添付ファイルのExcelファイルを開く
-            Set xlWorkbook = xlApp.Workbooks.Open(tempFilePath)
-            Set xlSheet = xlWorkbook.Sheets(1) ' 必要に応じてシートを指定
-            
-            ' Excelファイルのデータをフォームに読み込む
-            ' 担当者情報の読み込み（例: A1:D1に担当者情報があると仮定）
-            Me.txt担当者1 = xlSheet.Cells(1, 1).Value
-            Me.txt担当者2 = xlSheet.Cells(1, 2).Value
-            Me.txt担当者3 = xlSheet.Cells(1, 3).Value
-            Me.txt担当者4 = xlSheet.Cells(1, 4).Value
-            
-            ' 機種情報の読み込み（例: A2:H2以降に機種情報があると仮定）
-            lastRow = xlSheet.Cells(xlSheet.Rows.Count, "A").End(xlUp).Row
-            For i = 2 To lastRow
-                ' 新しいレコードを追加
-                With Me.subfrm機種情報.Form
-                    .Recordset.AddNew
-                    .Recordset.Fields("機種1") = xlSheet.Cells(i, 1).Value
-                    .Recordset.Fields("機種2") = xlSheet.Cells(i, 2).Value
-                    .Recordset.Fields("機種3") = xlSheet.Cells(i, 3).Value
-                    .Recordset.Fields("機種4") = xlSheet.Cells(i, 4).Value
-                    .Recordset.Fields("機種5") = xlSheet.Cells(i, 5).Value
-                    .Recordset.Fields("機種6") = xlSheet.Cells(i, 6).Value
-                    .Recordset.Fields("機種7") = xlSheet.Cells(i, 7).Value
-                    .Recordset.Fields("機種8") = xlSheet.Cells(i, 8).Value
-                    .Recordset.Update
-                End With
-            Next i
-            
-            ' Excelファイルを閉じる
-            xlWorkbook.Close False
-            xlApp.Quit
-            
-            ' 一時ファイルを削除
-            Kill tempFilePath
-            
-            ' 終了
-            Exit For
-        End If
-    Next olAttachment
-
-    ' オブジェクトの解放
-    Set olMail = Nothing
-    Set olNs = Nothing
-    Set olApp = Nothing
-    Set xlSheet = Nothing
-    Set xlWorkbook = Nothing
-    Set xlApp = Nothing
-    
-    MsgBox "データの読み込みが完了しました。"
-End Sub
-Sub AddPasswordToExcelFiles()
-    Dim folderPath As String
-    Dim fileName As String
-    Dim xlApp As Excel.Application
-    Dim xlBook As Excel.Workbook
-    Dim password As String
-    Dim cellValue As String
-    Dim cellAddress As String
-
-    ' フォルダパスを指定
-    folderPath = "C:\YourPath\"
-    ' パスワード取得に使用するセルのアドレスを指定
-    cellAddress = "A1"
-    
-    ' Excelアプリケーションのオブジェクトを作成
-    Set xlApp = New Excel.Application
-    xlApp.Visible = False  ' Excelを非表示にする
-
-    ' フォルダ内のすべてのExcelファイルを検索
-    fileName = Dir(folderPath & "*.xlsx")
-    Do While fileName <> ""
-        ' 各Excelファイルを開く
-        Set xlBook = xlApp.Workbooks.Open(folderPath & fileName)
-        
-        ' 特定のセルの値を取得
-        cellValue = xlBook.Sheets(1).Range(cellAddress).Value
-        
-        ' セルの値に基づいてパスワードを決定
-        password = GeneratePassword(cellValue)
-        
-        ' パスワードを設定して保存
-        xlBook.Password = password
-        xlBook.SaveAs fileName:=folderPath & fileName, Password:=password
-        
-        ' ブックを閉じる
-        xlBook.Close False
-        Set xlBook = Nothing
-        
-        ' 次のファイルに移動
-        fileName = Dir
-    Loop
-
-    ' Excelアプリケーションを終了
-    xlApp.Quit
-    Set xlApp = Nothing
-
-    MsgBox "すべてのファイルにパスワードを設定しました。", vbInformation
-End Sub
-
-' セルの値に基づいてパスワードを生成する関数
-Function GeneratePassword(cellValue As String) As String
-    ' ここでパスワード生成のロジックを実装
-    ' 例として、セルの値に「2025」を付加する
-    GeneratePassword = cellValue & "2025"
-End Function
-
-        
-Sub レポート()
-
-    ' 変数の宣言
-    Dim 活動実績ファイル名 As String
-    Dim 要請シート名 As String
-    Dim 解析シート名 As String
-    Dim 支援シート名 As String
-    Dim レポート開始日 As Date
-    Dim レポート終了日 As Date
-    Dim youseisheet As Worksheet
-    Dim kaisekisheet As Worksheet
-    Dim shiensheet As Worksheet
-    Dim i As Long, j As Long
-    Dim filePath As String, filename As String
-    Dim wb As Workbook
-    Dim 管理番号() As Variant
-    Dim lastRow As Long, lastRow2 As Long, lastRow3 As Long
-    Dim filteredRange As Range, cell As Range
-    Dim 解析人数 As Long, 解析日数 As Long
-    Dim 解析 As Long, 支援依頼 As Long, 鑑定嘱託 As Long, 上位局依頼 As Long
-    Dim 総警務 As Long, 刑事組対 As Long, 生安 As Long, 交通 As Long, 警備公安外事 As Long, 他官庁 As Long, その他 As Long
-
-    ' 初期設定情報を読み込む
-    活動実績ファイル名 = Range("G7").Value
-    要請シート名 = Range("G8").Value
-    解析シート名 = Range("G9").Value
-    支援シート名 = Range("G10").Value
-    ' レポート作成の期間取得
-    レポート開始日 = Range("G14").Value
-    レポート終了日 = Range("I14").Value
-
-    ' 活動実績を開いているかチェック
-    filePath = ThisWorkbook.Path & "\" & 活動実績ファイル名
-    filename = Dir(filePath)
-
-    If IsWorkbookOpen(filename) Then
-        MsgBox 活動実績ファイル名 & "を閉じてから再度実行してください。"
-        Exit Sub
+    ' 入力された日付をDate型に変換
+    If IsDate(inputDate) Then
+        targetDate = CDate(inputDate)
     Else
-        Workbooks.Open filePath
+        MsgBox "Invalid date format. Please enter a valid date.", vbExclamation
+        Exit Sub
     End If
 
-    ' シート名設定
-    Set youseisheet = ActiveWorkbook.Worksheets(要請シート名)
-    Set kaisekisheet = ActiveWorkbook.Worksheets(解析シート名)
-    Set shiensheet = ActiveWorkbook.Worksheets(支援シート名)
+    ' ユーザーに保存先フォルダを入力させる
+    saveFolder = InputBox("Enter the folder path to save attachments:", "Select Folder")
 
-    ' 管理番号、集計期間フラグ設定
-    lastRow = youseisheet.UsedRange.Rows.Count
-    ReDim 管理番号(lastRow - 1, 2)
+    ' フォルダパスの末尾にバックスラッシュを追加
+    If Right(saveFolder, 1) <> "\" Then
+        saveFolder = saveFolder & "\"
+    End If
 
-    For i = 0 To lastRow - 1
-        管理番号(i, 0) = youseisheet.Cells(i + 1, 2)
-        管理番号(i, 1) = 0
-        管理番号(i, 2) = 0
+    ' Outlookアプリケーションと名前空間を取得
+    Set olApp = New Outlook.Application
+    Set olNamespace = olApp.GetNamespace("MAPI")
+    Set olFolder = olNamespace.GetDefaultFolder(olFolderInbox)
+
+    ' メールアイテムのループ
+    For i = 1 To olFolder.Items.Count
+        If TypeOf olFolder.Items(i) Is Outlook.MailItem Then
+            Set olMail = olFolder.Items(i)
+
+            ' メールの受信日をチェック
+            If Int(olMail.ReceivedTime) = targetDate Then
+                ' 添付ファイルを保存
+                SaveMailAttachments olMail, saveFolder
+            End If
+        End If
     Next i
 
-    ' 管理番号をもとに解析シートから集計期間に含まれるもののフラグを付ける
-    lastRow2 = kaisekisheet.UsedRange.Rows.Count
-    For i = 0 To lastRow - 1
-        For j = 2 To lastRow2
-            If IsDate(kaisekisheet.Cells(j, 6)) Then
-                If 管理番号(i, 0) = kaisekisheet.Cells(j, 2) And _
-                    kaisekisheet.Cells(j, 8) >= レポート開始日 And _
-                    kaisekisheet.Cells(j, 6) <= レポート終了日 Then
-                    管理番号(i, 1) = 管理番号(i, 1) + 1
-                End If
-            End If
-        Next j
-    Next i
+    ' 後処理
+    Set olMail = Nothing
+    Set olFolder = Nothing
+    Set olNamespace = Nothing
+    Set olApp = Nothing
 
-    ' 集計期間に含まれる支援をチェック
-    lastRow3 = shiensheet.UsedRange.Rows.Count
-    For i = 1 To lastRow
-        For j = 2 To lastRow3
-            If IsDate(shiensheet.Cells(j, 10)) Then
-                If 管理番号(i, 0) = shiensheet.Cells(j, 2) And _
-                    shiensheet.Cells(j, 10) >= レポート開始日 And _
-                    shiensheet.Cells(j, 10) <= レポート終了日 Then
-                    管理番号(i, 2) = 管理番号(i, 2) + 1
-                End If
-            End If
-        Next j
-    Next i
-
-    ' 解析シートからレポート情報を抽出
-    With kaisekisheet.Cells
-        .AutoFilter Field:=8, Criteria1:="<=" & レポート終了日, Criteria2:=">=" & レポート開始日
-
-        ' 解析場所別の件数集計
-        ThisWorkbook.Sheets("レポート").Range("F13") = WorksheetFunction.Subtotal(3, .Columns("F")) - 1
-        .AutoFilter Field:=10, Criteria1:="<>解析室"
-        ThisWorkbook.Sheets("レポート").Range("F14") = WorksheetFunction.Subtotal(3, .Columns("F")) - 1
-
-        ' 解析場所のフィルターを解除
-        .AutoFilter
-
-        ' 解析人数の集計
-        解析人数 = WorksheetFunction.Subtotal(3, .Columns("BC")) - 1
-        解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, .Columns("BD")) - 1
-        解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, .Columns("BE")) - 1
-        解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, .Columns("BF")) - 1
-        解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, .Columns("BG")) - 1
-        解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, .Columns("BH")) - 1
-
-        ' 解析期間の集計
-        Set filteredRange = .Range("BI2:BI" & lastRow2).SpecialCells(xlCellTypeVisible)
-        解析日数 = 0
-        For Each cell In filteredRange
-            If cell.Value2 <> "" And cell.Offset(0, 1).Value2 <> "" And cell.Offset(0, 1).Value2 >= cell.Value2 Then
-                解析日数 = 解析日数 + cell.Offset(0, 1).Value2 - cell.Value2 + 1
-            End If
-        Next cell
-
-        ' 解析対象物の集計
-        .AutoFilter Field:=11, Criteria1:="原本", Operator:=xlOr, Criteria2:="副本"
-        ThisWorkbook.Sheets("レポート").Range("C12") = WorksheetFunction.Subtotal(3, .Columns("L")) - 1
-        .AutoFilter Field:=12, Criteria1:="携帯電話"
-        ThisWorkbook.Sheets("レポート").Range("C13") = WorksheetFunction.Subtotal(3, .Columns("L")) - 1
-        .AutoFilter Field:=12, Criteria1:="タブレット"
-        ThisWorkbook.Sheets("レポート").Range("C14") = WorksheetFunction.Subtotal(3, .Columns("L")) - 1
-        .AutoFilter Field:=12, Criteria1:="記録媒体"
-        ThisWorkbook.Sheets("レポート").Range("C15") = WorksheetFunction.Subtotal(3, .Columns("L")) - 1
-        .AutoFilter Field:=12, Criteria1:="カーナビ・IVI"
-        ThisWorkbook.Sheets("レポート").Range("C16") = WorksheetFunction.Subtotal(3, .Columns("L")) - 1
-        .AutoFilter Field:=12, Criteria1:="その他"
-        ThisWorkbook.Sheets("レポート").Range("C17") = WorksheetFunction.Subtotal(3, .Columns("L")) - 1
-
-        ' 証拠物件フィルタ解除
-        .AutoFilter 12
-
-        ' 不正プログラム解析
-        .AutoFilter Field:=35, Criteria1:="<>", Operator:=xlAnd, Criteria2:="<>0"
-        ThisWorkbook.Sheets("レポート").Range("F18") = WorksheetFunction.Subtotal(3, .Columns("AI")) - 1
-        .AutoFilter 35
-    End With
-
-    ' 支援シートからレポート情報を抽出
-    With shiensheet.Cells
-        ' レポート期間で絞る
-        .AutoFilter Field:=7, Criteria1:="<=" & レポート終了日, Criteria2:=">=" & レポート開始日
-
-        ' 支援人数別の集計
-        解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, .Columns("K")) - 1
-        解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, .Columns("L")) - 1
-        解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, .Columns("M")) - 1
-        解析人数 = 解析人数 + WorksheetFunction.Subtotal(3, .Columns("N")) - 1
-
-        ' 支援人数のフィルターを解除
-        .AutoFilter
-
-        ' 支援期間の集計
-        For i = 2 To lastRow3
-            If shiensheet.Cells(i, 7).Value <> "" And shiensheet.Cells(i, 6).Value <> "" Then
-                解析日数 = 解析日数 + shiensheet.Cells(i, 7).Value2 - shiensheet.Cells(i, 6).Value2 + 1
-            End If
-        Next i
-    End With
-
-    ' 要請シートからレポート情報を抽出
-    With youseisheet.Cells
-        ' 解析要請数をカウント
-        解析 = 0
-        支援依頼 = 0
-        鑑定嘱託 = 0
-        上位局依頼 = 0
-        総警務 = 0
-        刑事組対 = 0
-        生安 = 0
-        交通 = 0
-        警備公安外事 = 0
-        他官庁 = 0
-        その他 = 0
-
-        For i = 2 To lastRow - 1
-            ' 解析件数からカウント（解析、鑑定嘱託）
-            If 管理番号(i, 1) <> 0 Then
-                Select Case .Cells(i, 4)
-                    Case "解析"
-                        解析 = 解析 + 1
-                    Case "支援依頼"
-                        支援依頼 = 支援依頼 + 1
-                    Case "鑑定嘱託"
-                        鑑定嘱託 = 鑑定嘱託 + 1
-                End Select
-                ' 要請部門の集計
-                Select Case .Cells(i, 5)
-                    Case "総警務"
-                        総警務 = 総警務 + 1
-                    Case "刑事組対"
-                        刑事組対 = 刑事組対 + 1
-                    Case "生安（地域）"
-                        生安 = 生安 + 1
-                    Case "交通"
-                        交通 = 交通 + 1
-                    Case "警備公安外事"
-                        警備公安外事 = 警備公安外事 + 1
-                    Case "他官庁"
-                        他官庁 = 他官庁 + 1
-                    Case Else
-                        その他 = その他 + 1
-                End Select
-
-                ' 上位局への依頼件数をカウント（解析のみでカウント）
-                If .Cells(i, 15) = True Then
-                    上位局依頼 = 上位局依頼 + 1
-                End If
-            End If
-
-            ' 支援数からカウント（支援依頼を想定）
-            If 管理番号(i, 2) <> 0 Then
-                Select Case .Cells(i, 4)
-                    Case "解析"
-                        解析 = 解析 + 1
-                    Case "支援依頼"
-                        支援依頼 = 支援依頼 + 1
-                    Case "鑑定嘱託"
-                        鑑定嘱託 = 鑑定嘱託 + 1
-                End Select
-
-                ' 支援の要請部門を集計（数は解析と合算とする）
-                Select Case .Cells(i, 5)
-                    Case "総警務"
-                        総警務 = 総警務 + 1
-                    Case "刑事組対"
-                        刑事組対 = 刑事組対 + 1
-                    Case "生安（地域）"
-                        生安 = 生安 + 1
-                    Case "交通"
-                        交通 = 交通 + 1
-                    Case "警備公安外事"
-                        警備公安外事 = 警備公安外事 + 1
-                    Case "他官庁"
-                        他官庁 = 他官庁 + 1
-                    Case Else
-                        その他 = その他 + 1
-                End Select
-            End If
-        Next i
-
-        ' 抽出した情報をセルに書き込み
-        ThisWorkbook.Sheets("レポート").Range("G3") = レポート開始日 & "～" & レポート終了日
-        ThisWorkbook.Sheets("レポート").Range("F7") = 解析
-        ThisWorkbook.Sheets("レポート").Range("F8") = 支援依頼
-        ThisWorkbook.Sheets("レポート").Range("F9") = 鑑定嘱託
-        ThisWorkbook.Sheets("レポート").Range("C21") = 上位局依頼
-        ThisWorkbook.Sheets("レポート").Range("I7") = 刑事組対
-        ThisWorkbook.Sheets("レポート").Range("I8") = 生安
-        ThisWorkbook.Sheets("レポート").Range("I9") = 交通
-        ThisWorkbook.Sheets("レポート").Range("I10") = 総警務
-        ThisWorkbook.Sheets("レポート").Range("I11") = 警備公安外事
-        ThisWorkbook.Sheets("レポート").Range("I12") = 他官庁
-        ThisWorkbook.Sheets("レポート").Range("I13") = その他
-        ThisWorkbook.Sheets("レポート").Range("C8") = 解析人数
-        ThisWorkbook.Sheets("レポート").Range("C7") = 解析日数
-    End With
-
-    ' 活動実績ファイルを閉じる
-    Workbooks(filename).Close False
-
+    MsgBox "Attachments saved successfully.", vbInformation
 End Sub
 
-' ワークブックが開いているかどうかを確認する関数
-Function IsWorkbookOpen(ByVal name As String) As Boolean
-    Dim wb As Workbook
-    On Error Resume Next
-    Set wb = Workbooks(name)
-    On Error GoTo 0
-    IsWorkbookOpen = Not wb Is Nothing
-End Function
-            </code></pre>
+Sub SaveMailAttachments(mailItem As Outlook.MailItem, saveFolder As String)
+    Dim olAttachment As Outlook.Attachment
+    Dim j As Integer
+
+    ' 添付ファイルのループ
+    For j = 1 To mailItem.Attachments.Count
+        Set olAttachment = mailItem.Attachments(j)
+        ' 添付ファイルを保存
+        olAttachment.SaveAsFile saveFolder & olAttachment.FileName
+    Next j
+
+    ' 後処理
+    Set olAttachment = Nothing
+End Sub
+
+    
+Sub SaveMailAsMsg(mailItem As Outlook.MailItem, saveFolder As String)
+    Dim msgFileName As String
+
+    ' ファイル名を作成
+    msgFileName = saveFolder & Format(mailItem.ReceivedTime, "yyyy-mm-dd_hh-nn-ss") & "_" & mailItem.Subject & ".msg"
+    
+    ' ファイル名に使用できない文字を置換
+    msgFileName = Replace(msgFileName, ":", "-")
+    msgFileName = Replace(msgFileName, "\", "-")
+    msgFileName = Replace(msgFileName, "/", "-")
+    msgFileName = Replace(msgFileName, "?", "")
+    msgFileName = Replace(msgFileName, "*", "")
+    msgFileName = Replace(msgFileName, "<", "")
+    msgFileName = Replace(msgFileName, ">", "")
+    msgFileName = Replace(msgFileName, "|", "")
+    msgFileName = Replace(msgFileName, Chr(34), "") ' ダブルクオーテーション
+    
+    ' メールを.msgファイルとして保存
+    mailItem.SaveAs msgFileName, olMSG
+End Sub
+    
+    
+    </code></pre>
 </body>
 </html>
