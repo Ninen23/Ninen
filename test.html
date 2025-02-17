@@ -11,7 +11,139 @@
 <body>
     <pre><code class="vb">
 
+Sub ProcessEmailsByDate()
+    Dim olApp As Outlook.Application
+    Dim olNamespace As Outlook.Namespace
+    Dim olFolder As Outlook.MAPIFolder
+    Dim olMail As Outlook.MailItem
+    Dim i As Integer
+    Dim inputDate As String
+    Dim targetDate As Date
+    Dim saveFolder As String
+    Dim excelApp As Object
+    Dim wb As Object
+    Dim ws As Object
+    Dim lastRow As Long
 
+    ' ユーザーに日付を入力させる
+    inputDate = InputBox("Enter the date (YYYY-MM-DD):", "Select Date")
+
+    ' 入力された日付をDate型に変換
+    If IsDate(inputDate) Then
+        targetDate = CDate(inputDate)
+    Else
+        MsgBox "Invalid date format. Please enter a valid date.", vbExclamation
+        Exit Sub
+    End If
+
+    ' ユーザーに保存先フォルダを入力させる
+    saveFolder = InputBox("Enter the folder path to save attachments and emails:", "Select Folder")
+
+    ' フォルダパスの末尾にバックスラッシュを追加
+    If Right(saveFolder, 1) <> "\" Then
+        saveFolder = saveFolder & "\"
+    End If
+
+    ' Outlookアプリケーションと名前空間を取得
+    Set olApp = New Outlook.Application
+    Set olNamespace = olApp.GetNamespace("MAPI")
+    Set olFolder = olNamespace.GetDefaultFolder(olFolderInbox)
+
+    ' Excelアプリケーションを起動
+    Set excelApp = CreateObject("Excel.Application")
+    excelApp.Visible = False
+
+    ' 一覧表エクセルファイルを開くか新規作成
+    On Error Resume Next
+    Set wb = excelApp.Workbooks.Open(saveFolder & "AttachmentList.xlsx")
+    If wb Is Nothing Then
+        Set wb = excelApp.Workbooks.Add
+        Set ws = wb.Sheets(1)
+        ws.Name = "Attachments"
+        ws.Cells(1, 1).Value = "Date"
+        ws.Cells(1, 2).Value = "Email Subject"
+        ws.Cells(1, 3).Value = "Attachment Name"
+    Else
+        Set ws = wb.Sheets("Attachments")
+    End If
+    On Error GoTo 0
+
+    ' メールアイテムのループ
+    For i = 1 To olFolder.Items.Count
+        If TypeOf olFolder.Items(i) Is Outlook.MailItem Then
+            Set olMail = olFolder.Items(i)
+
+            ' メールの受信日をチェック
+            If Int(olMail.ReceivedTime) = targetDate Then
+                ' 添付ファイルを保存
+                SaveMailAttachments olMail, saveFolder, ws
+                ' メール自体を保存
+                SaveMailAsMsg olMail, saveFolder
+            End If
+        End If
+    Next i
+
+    ' エクセルファイルを保存
+    wb.SaveAs saveFolder & "AttachmentList.xlsx"
+    wb.Close
+    excelApp.Quit
+
+    ' 後処理
+    Set ws = Nothing
+    Set wb = Nothing
+    Set excelApp = Nothing
+    Set olMail = Nothing
+    Set olFolder = Nothing
+    Set olNamespace = Nothing
+    Set olApp = Nothing
+
+    MsgBox "Emails and attachments processed successfully.", vbInformation
+End Sub
+
+Sub SaveMailAttachments(mailItem As Outlook.MailItem, saveFolder As String, ws As Object)
+    Dim olAttachment As Outlook.Attachment
+    Dim j As Integer
+    Dim lastRow As Long
+
+    ' 添付ファイルのループ
+    For j = 1 To mailItem.Attachments.Count
+        Set olAttachment = mailItem.Attachments(j)
+        ' 添付ファイルを保存
+        olAttachment.SaveAsFile saveFolder & olAttachment.FileName
+
+        ' 添付ファイルがエクセルファイルの場合、一覧表に転記
+        If Right(olAttachment.FileName, 5) = ".xlsx" Or Right(olAttachment.FileName, 4) = ".xls" Then
+            lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 1
+            ws.Cells(lastRow, 1).Value = mailItem.ReceivedTime
+            ws.Cells(lastRow, 2).Value = mailItem.Subject
+            ws.Cells(lastRow, 3).Value = olAttachment.FileName
+        End If
+    Next j
+
+    ' 後処理
+    Set olAttachment = Nothing
+End Sub
+
+Sub SaveMailAsMsg(mailItem As Outlook.MailItem, saveFolder As String)
+    Dim msgFileName As String
+
+    ' ファイル名を作成
+    msgFileName = saveFolder & Format(mailItem.ReceivedTime, "yyyy-mm-dd_hh-nn-ss") & "_" & mailItem.Subject & ".msg"
+    
+    ' ファイル名に使用できない文字を置換
+    msgFileName = Replace(msgFileName, ":", "-")
+    msgFileName = Replace(msgFileName, "\", "-")
+    msgFileName = Replace(msgFileName, "/", "-")
+    msgFileName = Replace(msgFileName, "?", "")
+    msgFileName = Replace(msgFileName, "*", "")
+    msgFileName = Replace(msgFileName, "<", "")
+    msgFileName = Replace(msgFileName, ">", "")
+    msgFileName = Replace(msgFileName, "|", "")
+    msgFileName = Replace(msgFileName, Chr(34), "") ' ダブルクオーテーション
+    
+    ' メールを.msgファイルとして保存
+    mailItem.SaveAs msgFileName, olMSG
+End Sub
 
 Option Explicit
 
