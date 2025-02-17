@@ -10,6 +10,137 @@
 </head>
 <body>
     <pre><code class="vb">
+
+
+
+Option Explicit
+
+'=== メイン処理 ===
+Sub ProcessEmailsSaveAndRecord()
+    Dim saveFolder As String
+    Dim summaryFilePath As String
+    Dim selItems As Selection
+    Dim mail As Outlook.MailItem
+    Dim newMail As Outlook.MailItem
+    Dim att As Outlook.Attachment
+    Dim attFilePath As String
+    Dim i As Long, j As Long, k As Long
+    Dim iRow As Long
+    
+    ' 保存先フォルダ（末尾の "\" を忘れずに）
+    saveFolder = "C:\Temp\"
+    summaryFilePath = saveFolder & "Summary.xlsx"
+    
+    ' 選択中のメールが無い場合は終了
+    Set selItems = Application.ActiveExplorer.Selection
+    If selItems.Count = 0 Then
+        MsgBox "メールが選択されていません。", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Excelアプリケーションと一覧表ブックを用意（後でまとめて保存）
+    Dim xlApp As Object, wb As Object, ws As Object
+    On Error Resume Next
+    Set xlApp = GetObject(, "Excel.Application")
+    If xlApp Is Nothing Then
+        Set xlApp = CreateObject("Excel.Application")
+    End If
+    On Error GoTo 0
+    xlApp.Visible = False
+    
+    If Dir(summaryFilePath) = "" Then
+        ' 一覧表ファイルが無ければ新規作成
+        Set wb = xlApp.Workbooks.Add
+        Set ws = wb.Worksheets(1)
+        ' ヘッダー行の作成
+        ws.Range("A1").Value = "メール件名"
+        ws.Range("B1").Value = "受信日時"
+        ws.Range("C1").Value = "添付ファイル名"
+        ws.Range("D1").Value = "保存パス"
+    Else
+        ' 既存ファイルを開く
+        Set wb = xlApp.Workbooks.Open(summaryFilePath)
+        Set ws = wb.Worksheets(1)
+    End If
+    
+    ' 選択中の各メールについて処理
+    For i = 1 To selItems.Count
+        If TypeName(selItems(i)) = "MailItem" Then
+            Set mail = selItems(i)
+            
+            '【1】メール本体を添付ファイルなしで保存
+            ' コピーして添付ファイルを削除（元のメールは変更しない）
+            Set newMail = mail.Copy
+            For j = newMail.Attachments.Count To 1 Step -1
+                newMail.Attachments.Remove j
+            Next j
+            ' ファイル名作成（件名の不要文字を除去）
+            Dim safeSubject As String, msgFileName As String
+            safeSubject = CleanFileName(mail.Subject)
+            msgFileName = safeSubject & "_" & Format(mail.ReceivedTime, "yyyymmdd_hhnnss") & ".msg"
+            newMail.SaveAs saveFolder & msgFileName, olMSG
+            ' コピーしたアイテムは削除（※元メールには影響なし）
+            newMail.Delete
+            
+            '【2】添付ファイルを保存＆【3】Excel添付の場合は一覧表に転記
+            For k = 1 To mail.Attachments.Count
+                Set att = mail.Attachments(k)
+                attFilePath = saveFolder & CleanFileName(att.FileName)
+                att.SaveAsFile attFilePath
+                
+                If IsExcelAttachment(att.FileName) Then
+                    ' 一覧表の次行を取得して転記
+                    iRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row + 1
+                    ws.Cells(iRow, "A").Value = mail.Subject
+                    ws.Cells(iRow, "B").Value = mail.ReceivedTime
+                    ws.Cells(iRow, "C").Value = att.FileName
+                    ws.Cells(iRow, "D").Value = attFilePath
+                End If
+            Next k
+            
+        End If
+    Next i
+    
+    ' 一覧表ファイルを保存して閉じる
+    wb.SaveAs summaryFilePath
+    wb.Close
+    xlApp.Quit
+    
+    Set wb = Nothing
+    Set xlApp = Nothing
+    
+    MsgBox "メールおよび添付ファイルの保存、一覧表への転記が完了しました。", vbInformation
+End Sub
+
+'=== ファイル名に使えない文字を置換する関数 ===
+Function CleanFileName(strIn As String) As String
+    Dim invalidChars As Variant
+    Dim i As Long
+    invalidChars = Array("\", "/", ":", "*", "?", """", "<", ">", "|")
+    
+    For i = LBound(invalidChars) To UBound(invalidChars)
+        strIn = Replace(strIn, invalidChars(i), "_")
+    Next i
+    
+    CleanFileName = strIn
+End Function
+
+'=== 添付ファイルがExcelファイルかどうかを判定する関数 ===
+Function IsExcelAttachment(fileName As String) As Boolean
+    Dim lowerName As String
+    lowerName = LCase(fileName)
+    If Right(lowerName, 4) = ".xls" Or _
+       Right(lowerName, 5) = ".xlsx" Or _
+       Right(lowerName, 5) = ".xlsm" Then
+        IsExcelAttachment = True
+    Else
+        IsExcelAttachment = False
+    End If
+End Function
+
+
+
+        
 Sub SaveAttachmentsByDate()
     Dim olApp As Outlook.Application
     Dim olNamespace As Outlook.Namespace
