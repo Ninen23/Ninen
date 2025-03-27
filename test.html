@@ -10,7 +10,16 @@
 </head>
 <body>
     <pre><code class="vb">
+$groups = Get-ADGroup -Filter "Name -like '*管理課*'" 
 
+foreach ($group in $groups) {
+    Write-Output "=== $($group.Name) ==="
+    Get-ADGroupMember -Identity $group.Name | Where-Object { $_.objectClass -eq "user" } | 
+    ForEach-Object { 
+        $user = Get-ADUser $_.distinguishedName -Properties DisplayName 
+        Write-Output $user.DisplayName
+    }
+}
 Sub ProcessEmailsByDate()
     Dim olApp As Outlook.Application
     Dim olNamespace As Outlook.Namespace
