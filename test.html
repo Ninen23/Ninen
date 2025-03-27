@@ -10,6 +10,38 @@
 </head>
 <body>
     <pre><code class="vb">
+
+
+# 出力用のリストを作成
+$results = @()
+
+# 管理課配下の係（グループ）を取得
+$groups = Get-ADGroup -Filter "Name -like '*管理課*'"
+
+foreach ($group in $groups) {
+    $groupName = $group.Name
+
+    # グループのメンバーを取得
+    $members = Get-ADGroupMember -Identity $groupName | Where-Object { $_.objectClass -eq "user" }
+
+    foreach ($member in $members) {
+        $user = Get-ADUser $member.distinguishedName -Properties DisplayName
+
+        # 結果をリストに追加
+        $results += [PSCustomObject]@{
+            "課名" = $groupName
+            "氏名" = $user.DisplayName
+        }
+    }
+}
+
+# CSVファイルをYドライブに保存
+$CsvPath = "Y:\AD_Group_Members.csv"
+$results | Export-Csv -Path $CsvPath -NoTypeInformation -Encoding UTF8
+
+Write-Output "CSVファイルが作成されました: $CsvPath"
+
+        
 $groups = Get-ADGroup -Filter "Name -like '*管理課*'" 
 
 foreach ($group in $groups) {
